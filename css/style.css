@@ -371,6 +371,28 @@ body{ background:#000; color:var(--txt); }
   animation: blinkCorrect 0.6s ease-in-out 3;
 }
 
+/* 押したカード（不正解時も正解時も） */
+.choice.picked{
+  border: 6px solid #4da3ff;
+}
+
+/* 正解カード（赤枠点滅） */
+.choice.correct{
+  border: 8px solid #ff4d7a;
+  animation: blinkCorrect 0.6s ease-in-out 3;
+}
+
+/* 点滅後も赤枠を残す */
+.choice.correctHold{
+  border: 8px solid #ff4d7a;
+  animation: none;
+}
+
+@keyframes blinkCorrect{
+  0%,100%{ box-shadow: 0 0 0 rgba(255,77,122,0); }
+  50%{ box-shadow: 0 0 25px rgba(255,77,122,0.85); }
+}
+
 @keyframes blinkCorrect {
   0%, 100% { box-shadow: 0 0 0 rgba(255,77,122,0); }
   50% { box-shadow: 0 0 25px rgba(255,77,122,0.8); }
