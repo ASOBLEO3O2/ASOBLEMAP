@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ASOBLE都道府県シルエットクイズ</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app" class="app">
+    <!-- Background -->
+    <div class="bg"></div>
+
+    <!-- Drawer -->
+    <aside id="drawer" class="drawer" aria-hidden="true">
+      <div class="drawerHead">
+        <div class="drawerTitle">せってい</div>
+        <button id="btnCloseDrawer" class="btnIcon" aria-label="とじる">✕</button>
+      </div>
+      <div class="drawerBody">
+        <label class="toggle">
+          <input id="optHint" type="checkbox" checked />
+          <span>ヒントをひょうじ</span>
+        </label>
+        <label class="toggle">
+          <input id="optSound" type="checkbox" checked />
+          <span>おと（あとで）</span>
+        </label>
+        <div class="note">
+          ※ ちずハイライトは <b>せいかいのとき</b> に点めつします。
+        </div>
+      </div>
+    </aside>
+    <div id="drawerBackdrop" class="drawerBackdrop" hidden></div>
+
+    <!-- Header -->
+    <header class="topbar">
+      <button id="btnOpenDrawer" class="btnIcon" aria-label="せってい">⚙</button>
+      <div class="brand">ASOBLE 都道府県シルエットクイズ</div>
+      <div class="spacer"></div>
+    </header>
+
+    <!-- Screens -->
+    <main class="main">
+      <!-- Title -->
+      <section id="screenTitle" class="screen screenActive">
+        <h1 class="title">
+          <span class="titleSmall">ASOBLE</span>
+          <span class="titleBig">都道府県<br/>シルエットクイズ</span>
+        </h1>
+        <button id="btnStart" class="btnPrimary">はじめる</button>
+      </section>
+
+      <!-- Game -->
+      <section id="screenGame" class="screen" hidden>
+        <div class="question">
+          <div id="qText" class="qText">このシルエットから 〇〇けん をえらんでね！</div>
+          <button id="btnHint" class="btnGhost" hidden>ヒント</button>
+        </div>
+
+        <div class="stage">
+          <!-- Map layer -->
+          <div class="mapWrap" aria-hidden="true">
+            <img class="mapBase" src="map/base_japan.png" alt="" />
+            <img id="mapHi" class="mapHi" alt="" />
+          </div>
+
+          <!-- Choices -->
+          <div id="grid" class="grid" role="group" aria-label="えらぶ">
+            <!-- injected -->
+          </div>
+        </div>
+
+        <!-- Result panel -->
+        <div id="result" class="result" hidden>
+          <div class="resultCard">
+            <div id="resLine1" class="resLine1">✨せいかい！✨</div>
+            <div id="resName" class="resName">北海道</div>
+            <div id="resKana" class="resKana">（ほっかいどう）</div>
+            <div id="resLine2" class="resLine2">〇〇はココだよ！</div>
+            <button id="btnNext" class="btnPrimary small">つぎへ</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span id="badge" class="badge">ready</span>
+    </footer>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

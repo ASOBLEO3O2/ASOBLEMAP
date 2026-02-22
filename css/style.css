@@ -1,0 +1,319 @@
+/* ASOBLE Prefecture Silhouette Quiz (v0) */
+:root{
+  --pad: 14px;
+  --r: 18px;
+  --shadow: 0 10px 30px rgba(0,0,0,.22);
+  --border: rgba(255,255,255,.22);
+
+  --txt: rgba(255,255,255,.94);
+  --muted: rgba(255,255,255,.72);
+
+  --red: #ff4d7d; /* ピンク寄り赤 */
+  --blue: #4da7ff;
+  --card: rgba(20,24,32,.55);
+  --card2: rgba(20,24,32,.72);
+}
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; margin:0; font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; }
+body{ background:#000; color:var(--txt); }
+
+.app{
+  position:relative;
+  min-height:100vh;
+  overflow:hidden;
+}
+
+.bg{
+  position:absolute; inset:0;
+  background: url("../images/background.jpg") center/cover no-repeat;
+  filter: saturate(1.05);
+}
+
+.topbar{
+  position:relative;
+  z-index:5;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: calc(var(--pad) + env(safe-area-inset-top)) var(--pad) var(--pad);
+  background: linear-gradient(to bottom, rgba(0,0,0,.42), rgba(0,0,0,0));
+}
+
+.brand{
+  font-weight:800;
+  letter-spacing:.02em;
+  text-shadow: 0 2px 10px rgba(0,0,0,.35);
+  font-size:14px;
+}
+.spacer{ flex:1; }
+
+.btnIcon{
+  width:44px; height:44px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background: rgba(0,0,0,.35);
+  color:var(--txt);
+  font-size:20px;
+  display:grid; place-items:center;
+  box-shadow: 0 8px 22px rgba(0,0,0,.18);
+}
+
+.main{
+  position:relative;
+  z-index:3;
+  min-height: calc(100vh - 110px);
+  padding: 0 var(--pad) calc(var(--pad) + env(safe-area-inset-bottom));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.screen{
+  width:min(980px, 100%);
+}
+
+.screenActive{ display:block; }
+
+.title{
+  text-align:center;
+  margin: 26px 0 22px;
+  text-shadow: 0 2px 18px rgba(0,0,0,.38);
+}
+.titleSmall{
+  display:block;
+  font-size:18px;
+  opacity:.95;
+}
+.titleBig{
+  display:block;
+  font-size:44px;
+  line-height:1.05;
+  font-weight:900;
+}
+
+.btnPrimary{
+  display:block;
+  margin: 18px auto 0;
+  padding: 18px 22px;
+  border-radius: 999px;
+  border: none;
+  color: white;
+  font-weight:900;
+  font-size:22px;
+  background: linear-gradient(135deg, #ff3d7c, #ffb03d);
+  box-shadow: var(--shadow);
+  cursor:pointer;
+  min-width: min(420px, 92%);
+}
+.btnPrimary.small{
+  padding: 14px 18px;
+  font-size:18px;
+  min-width: min(260px, 84%);
+}
+
+.btnGhost{
+  padding: 10px 14px;
+  border-radius: 999px;
+  border:1px solid var(--border);
+  background: rgba(0,0,0,.25);
+  color: var(--txt);
+  font-weight:800;
+}
+
+.question{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin: 0 0 10px;
+}
+.qText{
+  flex:1;
+  font-weight:900;
+  font-size:22px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(0,0,0,.35);
+  border:1px solid var(--border);
+  box-shadow: 0 10px 30px rgba(0,0,0,.16);
+}
+
+.stage{
+  position:relative;
+  border-radius: 26px;
+  background: rgba(0,0,0,.28);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  overflow:hidden;
+  padding: 14px;
+}
+
+.mapWrap{
+  position:absolute; inset:0;
+  display:grid;
+  place-items:center;
+  pointer-events:none;
+  opacity:.9;
+}
+.mapBase{
+  width:min(560px, 92%);
+  opacity:.18; /* うっすら */
+  filter: drop-shadow(0 12px 30px rgba(0,0,0,.12));
+}
+.mapHi{
+  position:absolute;
+  width:min(560px, 92%);
+  opacity:0;
+  transform: scale(1);
+  filter: drop-shadow(0 12px 24px rgba(0,0,0,.25));
+}
+
+.mapHi.blink{
+  animation: blink .6s ease-in-out 0s 3;
+}
+@keyframes blink{
+  0%{ opacity:0; transform:scale(1); }
+  20%{ opacity:1; transform:scale(1.02); }
+  50%{ opacity:1; transform:scale(1.02); }
+  80%{ opacity:0; transform:scale(1); }
+  100%{ opacity:0; transform:scale(1); }
+}
+
+.grid{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 8px;
+}
+
+.choice{
+  position:relative;
+  border-radius: 22px;
+  border: 2px solid rgba(255,255,255,.14);
+  background: rgba(20,24,32,.55);
+  box-shadow: 0 10px 26px rgba(0,0,0,.18);
+  overflow:hidden;
+  aspect-ratio: 1 / 1;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  user-select:none;
+  touch-action: manipulation;
+}
+.choice img{
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,.22));
+}
+.choice.correct{
+  border-color: var(--red);
+  box-shadow: 0 0 0 6px rgba(255,77,125,.22), 0 14px 30px rgba(0,0,0,.22);
+}
+.choice.wrong{
+  border-color: var(--blue);
+  opacity:.9;
+}
+
+.result{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  background: rgba(0,0,0,.35);
+  z-index:10;
+}
+.resultCard{
+  width:min(520px, 92%);
+  background: var(--card2);
+  border:1px solid var(--border);
+  border-radius: 26px;
+  box-shadow: var(--shadow);
+  padding: 16px 16px 18px;
+  text-align:center;
+}
+.resLine1{
+  font-weight:900;
+  font-size:22px;
+}
+.resName{
+  margin-top:10px;
+  font-weight:900;
+  font-size:34px;
+  letter-spacing:.03em;
+}
+.resKana{
+  font-weight:800;
+  opacity:.9;
+  margin-top:2px;
+}
+.resLine2{
+  margin-top:12px;
+  font-weight:900;
+  font-size:20px;
+}
+
+.footer{
+  position:relative;
+  z-index:4;
+  padding: 10px var(--pad) 14px;
+  display:flex;
+  justify-content:center;
+}
+.badge{
+  padding: 6px 10px;
+  border-radius: 999px;
+  border:1px solid var(--border);
+  background: rgba(0,0,0,.30);
+  font-size:12px;
+  opacity:.95;
+}
+
+/* Drawer */
+.drawerBackdrop{
+  position:fixed; inset:0;
+  background: rgba(0,0,0,.35);
+  z-index:20;
+}
+.drawer{
+  position:fixed;
+  top:0; right:0;
+  height:100%;
+  width:min(360px, 86vw);
+  background: rgba(10,12,18,.92);
+  border-left: 1px solid rgba(255,255,255,.14);
+  transform: translateX(105%);
+  transition: transform .22s ease;
+  z-index:30;
+  padding-top: env(safe-area-inset-top);
+}
+.drawer.open{ transform: translateX(0); }
+.drawerHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 14px;
+}
+.drawerTitle{ font-weight:900; font-size:18px; }
+.drawerBody{ padding: 10px 14px 14px; }
+.toggle{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: 12px 10px;
+  border-radius: 16px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  margin-bottom: 10px;
+  font-weight:800;
+}
+.toggle input{ width:20px; height:20px; }
+.note{
+  margin-top: 8px;
+  opacity:.85;
+  font-size:13px;
+  line-height:1.4;
+}
