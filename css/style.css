@@ -1,3 +1,12 @@
+@font-face{
+  font-family:"CherryBombOne";
+  src:url("../fonts/CherryBombOne-Regular.ttf") format("truetype");
+  font-display:swap;
+}
+body{
+  font-family:"CherryBombOne", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
 /* ASOBLE Prefecture Silhouette Quiz (v0) */
 :root{
   --pad: 14px;
