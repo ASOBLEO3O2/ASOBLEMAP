@@ -219,37 +219,28 @@ function renderQuestion(){
   }
 }
 
-function onPick(pickId, pickEl){
-  if (!current || current.locked) return;
-  current.locked = true;
+function onPick(picked) {
+  const correct = currentAnswer;
+  const isCorrect = picked.code === correct.code;
 
-  const correctId = current.correct.id;
-  const nodes = [...els.grid.querySelectorAll(".choice")];
+  // まず全カードのクラスをリセット
+  document.querySelectorAll(".choice").forEach(c => {
+    c.classList.remove("picked", "correct");
+  });
 
-  const correctEl = nodes.find(n => Number(n.dataset.prefId) === correctId);
-  if (correctEl) correctEl.classList.add("correct");
-  if (pickId !== correctId && pickEl) pickEl.classList.add("wrong");
+  // 押したカードに picked
+  const pickedEl = document.querySelector(`[data-code="${picked.code}"]`);
+  pickedEl.classList.add("picked");
 
-  // Result copy
-  if (pickId === correctId){
-    els.resLine1.textContent = "✨せいかい！✨";
+  if (isCorrect) {
+    pickedEl.classList.add("correct");
   } else {
-    els.resLine1.textContent = "おしい！";
+    // 正解カードに correct クラスを付与
+    const correctEl = document.querySelector(`[data-code="${correct.code}"]`);
+    correctEl.classList.add("correct");
   }
-  els.resName.textContent = current.correct.kanji;
-  els.resKana.textContent = `（${current.correct.kana}）`;
-  els.resLine2.textContent = `${current.correct.kanji}はココだよ！`;
 
-  // Show result panel after a beat (赤枠→名前が入る感)
-  setTimeout(() => {
-    els.result.hidden = false;
-
-    // Start map highlight blink after another beat
-    setTimeout(() => {
-      startMapBlink(current.correct);
-    }, 600);
-
-  }, 450);
+  showResult({ correct, picked, isCorrect });
 }
 
 function startMapBlink(pref){
