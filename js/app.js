@@ -1,8 +1,9 @@
-// ASOBLE 都道府県シルエットクイズ (v0)
-// - 県名は「問題文＝かな」
-// - 選択肢は「4枚のシルエット」
+// ASOBLE 都道府県シルエットクイズ (v0.2)
+// - 問題文：かな
+// - 選択肢：4枚シルエット（毎回ランダム配置）
 // - 地方バランス（偏り防止）あり
-// - 正解後：正解枠(赤) → 「ココだよ！」 → 地図ハイライト点滅（素材があれば）
+// - 不正解：おしい！それは〇〇県だよ！＋正解カードを赤枠点滅
+// - 正解：正解カードを赤枠点滅 → 「〇〇県はココだよ！」→ 地図ハイライト点滅（素材があれば）
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -27,6 +28,7 @@ const els = {
   btnHint: $("#btnHint"),
   grid: $("#grid"),
 
+  // result overlay
   result: $("#result"),
   resLine1: $("#resLine1"),
   resName: $("#resName"),
@@ -34,6 +36,7 @@ const els = {
   resLine2: $("#resLine2"),
   btnNext: $("#btnNext"),
 
+  // map highlight img (optional)
   mapHi: $("#mapHi"),
 };
 
@@ -42,27 +45,31 @@ let PREFS_BY_REGION = new Map(); // regionId -> prefs[]
 let lastRegions = []; // recent regions
 let lastPrefId = null;
 
-let current = null; // { correctPref, choices[] }
+let current = null; // { correct, choices, locked }
 
-function setBadge(text){ els.badge.textContent = text; }
+/* ========= UI helpers ========= */
 
-function openDrawer(){
+function setBadge(text) {
+  els.badge.textContent = text;
+}
+
+function openDrawer() {
   els.drawer.classList.add("open");
   els.drawer.setAttribute("aria-hidden", "false");
   els.drawerBackdrop.hidden = false;
 }
-function closeDrawer(){
+function closeDrawer() {
   els.drawer.classList.remove("open");
   els.drawer.setAttribute("aria-hidden", "true");
   els.drawerBackdrop.hidden = true;
 }
 
-els.btnOpenDrawer.addEventListener("click", openDrawer);
-els.btnCloseDrawer.addEventListener("click", closeDrawer);
-els.drawerBackdrop.addEventListener("click", closeDrawer);
+els.btnOpenDrawer?.addEventListener("click", openDrawer);
+els.btnCloseDrawer?.addEventListener("click", closeDrawer);
+els.drawerBackdrop?.addEventListener("click", closeDrawer);
 
-function showScreen(name){
-  if (name === "title"){
+function showScreen(name) {
+  if (name === "title") {
     els.screenTitle.hidden = false;
     els.screenTitle.classList.add("screenActive");
     els.screenGame.hidden = true;
@@ -75,115 +82,181 @@ function showScreen(name){
   }
 }
 
-async function loadPrefs(){
+/* ========= Data ========= */
+
+async function loadPrefs() {
   const res = await fetch("data/prefs.json", { cache: "no-store" });
   const json = await res.json();
-  PREFS = (json.prefs || []).filter(p => p.silhouette); // assetがあるものだけ出題
-  const missing = (json.missing || []);
-  if (missing.length){
+
+  // assetがあるものだけ出題
+  PREFS = (json.prefs || []).filter((p) => p.silhouette);
+
+  const missing = json.missing || [];
+  if (missing.length) {
     console.warn("missing assets:", missing);
-    setBadge(`素材不足: ${missing.map(m => m[2]).join("、")}`);
+    setBadge(`素材不足: ${missing.map((m) => m[2]).join("、")}`);
   } else {
     setBadge("素材OK");
   }
 
   PREFS_BY_REGION = new Map();
-  for (const p of PREFS){
+  for (const p of PREFS) {
     const k = String(p.regionId);
     if (!PREFS_BY_REGION.has(k)) PREFS_BY_REGION.set(k, []);
     PREFS_BY_REGION.get(k).push(p);
   }
 }
 
-function pickRegionBalanced(){
+function pickRegionBalanced() {
   const regions = [...PREFS_BY_REGION.keys()];
+
   // Avoid last 2 regions if possible
   const avoid = new Set(lastRegions.slice(-2));
-  let candidates = regions.filter(r => !avoid.has(r));
+  let candidates = regions.filter((r) => !avoid.has(r));
   if (candidates.length === 0) candidates = regions;
 
   // Weight: prefer regions with fewer recent appearances
-  const recentCount = (rid) => lastRegions.filter(x => x === rid).length;
-  candidates.sort((a,b) => recentCount(a) - recentCount(b));
+  const recentCount = (rid) => lastRegions.filter((x) => x === rid).length;
+  candidates.sort((a, b) => recentCount(a) - recentCount(b));
+
   const bestScore = recentCount(candidates[0]);
-  const best = candidates.filter(r => recentCount(r) === bestScore);
+  const best = candidates.filter((r) => recentCount(r) === bestScore);
   return best[Math.floor(Math.random() * best.length)];
 }
 
-function pickCorrectPref(){
+function pickCorrectPref() {
   const rid = pickRegionBalanced();
   const list = PREFS_BY_REGION.get(rid) || [];
   if (!list.length) return null;
 
   // avoid exact same pref as last time if possible
   let pool = list;
-  if (lastPrefId != null && list.length > 1){
-    pool = list.filter(p => p.id !== lastPrefId);
+  if (lastPrefId != null && list.length > 1) {
+    pool = list.filter((p) => p.id !== lastPrefId);
     if (!pool.length) pool = list;
   }
 
   const p = pool[Math.floor(Math.random() * pool.length)];
+
   lastRegions.push(String(rid));
-  if (lastRegions.length > 18) lastRegions = lastRegions.slice(-18); // keep history
+  if (lastRegions.length > 18) lastRegions = lastRegions.slice(-18);
   lastPrefId = p.id;
+
   return p;
 }
 
-function shuffle(arr){
+function shuffle(arr) {
   const a = arr.slice();
-  for (let i=a.length-1; i>0; i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i],a[j]] = [a[j],a[i]];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
 }
 
-function buildChoices(correct){
-  // choose 3 wrongs
+function buildChoices(correct) {
   const wrongs = [];
   const used = new Set([correct.id]);
 
   // try to diversify regions a bit
-  const regionIds = [...PREFS_BY_REGION.keys()].filter(r => r !== String(correct.regionId));
+  const regionIds = [...PREFS_BY_REGION.keys()].filter(
+    (r) => r !== String(correct.regionId)
+  );
   const regionOrder = shuffle(regionIds);
 
-  for (const rid of regionOrder){
+  for (const rid of regionOrder) {
     const list = PREFS_BY_REGION.get(rid) || [];
-    const cands = shuffle(list).filter(p => !used.has(p.id));
-    if (cands[0]){
+    const cands = shuffle(list).filter((p) => !used.has(p.id));
+    if (cands[0]) {
       wrongs.push(cands[0]);
       used.add(cands[0].id);
     }
     if (wrongs.length >= 3) break;
   }
 
-  // fallback if still not enough
-  if (wrongs.length < 3){
-    for (const p of shuffle(PREFS)){
+  // fallback
+  if (wrongs.length < 3) {
+    for (const p of shuffle(PREFS)) {
       if (wrongs.length >= 3) break;
-      if (!used.has(p.id)){
+      if (!used.has(p.id)) {
         wrongs.push(p);
         used.add(p.id);
       }
     }
   }
 
-  const choices = shuffle([correct, ...wrongs]);
-  return choices;
+  return shuffle([correct, ...wrongs]);
 }
 
-function renderQuestion(){
-  current = null;
+/* ========= Map highlight (optional assets) ========= */
+
+function clearMapHighlight() {
+  els.mapHi.classList.remove("blink");
+  els.mapHi.style.opacity = "0";
+  els.mapHi.removeAttribute("src");
+}
+
+function startMapBlink(pref) {
+  const url = pref?.mapHighlight;
+  if (!url) return;
+
+  els.mapHi.onload = () => {
+    els.mapHi.style.opacity = "1";
+    els.mapHi.classList.remove("blink");
+    // restart animation
+    void els.mapHi.offsetWidth;
+    els.mapHi.classList.add("blink");
+  };
+  els.mapHi.onerror = () => {
+    console.warn("map highlight not found:", url);
+  };
+  els.mapHi.src = url;
+}
+
+/* ========= Result UI ========= */
+
+function hideResult() {
   els.result.hidden = true;
+}
+
+function showResult({ correct, picked, isCorrect }) {
+  // まず出す（ただし「ココだよ！」演出は少し遅らせる）
+  els.result.hidden = false;
+
+  if (isCorrect) {
+    els.resLine1.textContent = "✨せいかい！✨";
+  } else {
+    // ここが要望：「おしい！それは〇〇県だよ！」
+    els.resLine1.textContent = `おしい！それは ${picked.kanji} だよ！`;
+  }
+
+  // 正解名（漢字＋ふりがな）
+  els.resName.textContent = correct.kanji;
+  els.resKana.textContent = `（${correct.kana}）`;
+
+  // いったん空 → 少し遅れて「ココだよ！」＋地図点滅
+  els.resLine2.textContent = "";
+
+  window.setTimeout(() => {
+    els.resLine2.textContent = `${correct.kanji} はココだよ！`;
+    startMapBlink(correct);
+  }, 600);
+}
+
+/* ========= Question ========= */
+
+function renderQuestion() {
+  hideResult();
+  clearMapHighlight();
 
   const correct = pickCorrectPref();
-  if (!correct){
+  if (!correct) {
     setBadge("データがありません");
     return;
   }
-  const choices = buildChoices(correct);
 
-  current = { correct, choices, locked:false };
+  const choices = buildChoices(correct);
+  current = { correct, choices, locked: false };
 
   // Question text (kana)
   els.qText.textContent = `このシルエットから\n${correct.kana} をえらんでね！`;
@@ -195,18 +268,17 @@ function renderQuestion(){
     alert(`ヒント：${correct.regionLabel} だよ！`);
   };
 
-  // Clear map highlight
-  els.mapHi.classList.remove("blink");
-  els.mapHi.style.opacity = "0";
-  els.mapHi.removeAttribute("src");
-
   // Render grid
   els.grid.innerHTML = "";
-  for (const p of choices){
+
+  for (const p of choices) {
     const btn = document.createElement("button");
     btn.className = "choice";
     btn.type = "button";
+
+    // ★ここが重要：idで追えるように data-pref-id を付ける
     btn.dataset.prefId = String(p.id);
+
     btn.setAttribute("aria-label", "えらぶ");
 
     const img = document.createElement("img");
@@ -219,47 +291,49 @@ function renderQuestion(){
   }
 }
 
-function onPick(picked) {
-  const correct = currentAnswer;
-  const isCorrect = picked.code === correct.code;
-
-  // まず全カードのクラスをリセット
-  document.querySelectorAll(".choice").forEach(c => {
-    c.classList.remove("picked", "correct");
+function resetChoiceClasses() {
+  els.grid.querySelectorAll(".choice").forEach((c) => {
+    c.classList.remove("picked", "correct", "correctHold");
   });
+}
 
-  // 押したカードに picked
-  const pickedEl = document.querySelector(`[data-code="${picked.code}"]`);
-  pickedEl.classList.add("picked");
+function addCorrectBlink(el) {
+  // CSS側で .choice.correct に blink が付く想定。
+  // 「3回点滅→固定」したいので、点滅後に correctHold を付けて残す
+  el.classList.add("correct");
+  window.setTimeout(() => {
+    el.classList.add("correctHold");
+  }, 0.6 * 3 * 1000 + 50); // 0.6秒×3回＋少し
+}
 
-  if (isCorrect) {
-    pickedEl.classList.add("correct");
-  } else {
-    // 正解カードに correct クラスを付与
-    const correctEl = document.querySelector(`[data-code="${correct.code}"]`);
-    correctEl.classList.add("correct");
+function onPick(pickedId, pickedBtnEl) {
+  if (!current || current.locked) return;
+  current.locked = true;
+
+  const correct = current.correct;
+  const picked = current.choices.find((p) => p.id === pickedId) || null;
+  if (!picked) {
+    current.locked = false;
+    return;
   }
 
+  const isCorrect = pickedId === correct.id;
+
+  // 見た目：押したのは青枠、正解は赤枠点滅
+  resetChoiceClasses();
+
+  // 押したカード
+  pickedBtnEl.classList.add("picked");
+
+  // 正解カード
+  const correctEl = els.grid.querySelector(`[data-pref-id="${correct.id}"]`);
+  if (correctEl) addCorrectBlink(correctEl);
+
+  // 結果表示（要求通り）
   showResult({ correct, picked, isCorrect });
 }
 
-function startMapBlink(pref){
-  // If highlight PNG exists, show it and blink.
-  // (GitHub Pagesでは存在しない画像は 404 になるので、onerror で無視)
-  const url = pref.mapHighlight;
-  els.mapHi.onload = () => {
-    els.mapHi.style.opacity = "1";
-    els.mapHi.classList.remove("blink");
-    // restart animation
-    void els.mapHi.offsetWidth;
-    els.mapHi.classList.add("blink");
-  };
-  els.mapHi.onerror = () => {
-    // Highlight asset not ready yet – just skip
-    console.warn("map highlight not found:", url);
-  };
-  els.mapHi.src = url;
-}
+/* ========= Events ========= */
 
 els.btnNext.addEventListener("click", () => {
   renderQuestion();
@@ -270,10 +344,14 @@ els.btnStart.addEventListener("click", async () => {
   renderQuestion();
 });
 
-(async function main(){
+/* ========= Boot ========= */
+
+(async function main() {
   showScreen("title");
   closeDrawer();
   setBadge("loading...");
   await loadPrefs();
   setBadge("ready");
+  hideResult();
+  clearMapHighlight();
 })();
