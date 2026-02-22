@@ -317,3 +317,6 @@ body{ background:#000; color:var(--txt); }
   font-size:13px;
   line-height:1.4;
 }
+
+/* hidden属性を最優先で非表示にする */
+[hidden] { display: none !important; }
