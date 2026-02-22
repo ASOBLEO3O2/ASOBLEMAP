@@ -360,3 +360,18 @@ body{ background:#000; color:var(--txt); }
   padding: 40px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.15);
 }
+/* 押したカード（不正解時） */
+.choice.picked {
+  border: 6px solid #4da3ff;
+}
+
+/* 正解カード */
+.choice.correct {
+  border: 8px solid #ff4d7a;
+  animation: blinkCorrect 0.6s ease-in-out 3;
+}
+
+@keyframes blinkCorrect {
+  0%, 100% { box-shadow: 0 0 0 rgba(255,77,122,0); }
+  50% { box-shadow: 0 0 25px rgba(255,77,122,0.8); }
+}
