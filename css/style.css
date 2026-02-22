@@ -329,3 +329,34 @@ body{ background:#000; color:var(--txt); }
 
 /* hidden属性を最優先で非表示にする */
 [hidden] { display: none !important; }
+
+/* --- iPad向けに大きく --- */
+
+.quiz {
+  padding-top: 80px;
+}
+
+.choices {
+  width: min(92vw, 1100px);
+  gap: 28px;
+}
+
+.choice {
+  aspect-ratio: 1 / 1;
+  border-radius: 24px;
+  padding: 24px;
+}
+
+.choice img {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+}
+
+.quiz {
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(6px);
+  border-radius: 28px;
+  padding: 40px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
