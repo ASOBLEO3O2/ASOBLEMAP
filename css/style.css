@@ -1,99 +1,661 @@
-/* 全体 */
+:root {
+  --bg1: #4fc3f7;
+  --bg2: #0288d1;
+  --panel: rgba(255, 255, 255, 0.16);
+  --panel-strong: rgba(255, 255, 255, 0.22);
+  --text: #ffffff;
+  --shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  --radius: 22px;
+  --topbar-h: 64px;
+  --footer-h: 34px;
+  --content-max: 1400px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
 body {
+  width: 100%;
+  height: 100%;
   margin: 0;
-  background: #111;
-  color: #fff;
-  font-family: sans-serif;
 }
 
-/* ===== 既存 ===== */
+body {
+  overflow: hidden;
+  color: var(--text);
+  font-family:
+    "Hiragino Kaku Gothic ProN",
+    "Yu Gothic",
+    "Meiryo",
+    sans-serif;
+  background: linear-gradient(180deg, var(--bg1), var(--bg2));
+}
 
-#screenGame {
-  display: flex;
-  height: calc(100vh - 80px);
+button {
+  font: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.app {
   position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
-/* 上に残る問題 */
-.qText {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 28px;
-  font-weight: bold;
-  text-align: center;
-  z-index: 5;
-}
-
-/* 中央バーン用 */
-.qHero {
+.bg {
   position: absolute;
   inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.18) 0 8%, transparent 9%),
+    radial-gradient(circle at 85% 25%, rgba(255,255,255,0.16) 0 7%, transparent 8%),
+    radial-gradient(circle at 70% 80%, rgba(255,255,255,0.12) 0 9%, transparent 10%),
+    linear-gradient(180deg, #66d0ff 0%, #31a9e8 55%, #1d87d7 100%);
+  z-index: 0;
+}
+
+/* =========================
+   Header / Footer
+========================= */
+
+.topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  z-index: 20;
+}
+
+.brand {
+  font-size: clamp(18px, 2.2vw, 30px);
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--footer-h);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 72px;
+  z-index: 20;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* =========================
+   Buttons
+========================= */
+
+.btnIcon,
+.btnPrimary,
+.btnGhost {
+  border: 0;
+  outline: none;
+  cursor: pointer;
+}
+
+.btnIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  box-shadow: var(--shadow);
+  font-size: 22px;
   font-weight: 900;
-  text-align: center;
-  opacity: 0;
-  transform: scale(0.5);
+}
+
+.btnPrimary {
+  min-width: 180px;
+  padding: 16px 28px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffef73, #ffca28);
+  color: #4a3a00;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+  font-size: clamp(22px, 2.2vw, 34px);
+  font-weight: 900;
+}
+
+.btnPrimary.small {
+  min-width: 140px;
+  padding: 12px 22px;
+  font-size: clamp(18px, 1.8vw, 26px);
+}
+
+.btnGhost {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  box-shadow: var(--shadow);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* =========================
+   Drawer
+========================= */
+
+.drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(360px, 84vw);
+  height: 100%;
+  padding: 18px 18px 24px;
+  background: rgba(21, 54, 88, 0.96);
+  backdrop-filter: blur(8px);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.28);
+  transform: translateX(100%);
+  transition: transform 0.24s ease;
+  z-index: 40;
+}
+
+.drawer.open {
+  transform: translateX(0);
+}
+
+.drawerBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  z-index: 35;
+}
+
+.drawerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.drawerTitle {
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.drawerBody {
+  display: grid;
+  gap: 16px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.note {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* =========================
+   Screens
+========================= */
+
+.main {
+  position: absolute;
+  inset: var(--topbar-h) 0 var(--footer-h);
   z-index: 10;
 }
 
-/* アニメーション */
-.qHero.show {
-  animation: burst 0.6s forwards;
-}
-
-.qHero.hide {
-  animation: fadeOut 0.3s forwards;
-}
-
-@keyframes burst {
-  0% { opacity: 0; transform: scale(0.4); }
-  70% { opacity: 1; transform: scale(1.1); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes fadeOut {
-  to { opacity: 0; transform: scale(0.9); }
-}
-
-/* ===== 選択肢 ===== */
-
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  padding: 80px 20px 20px;
+.screen {
+  position: absolute;
+  inset: 0;
   width: 100%;
+  height: 100%;
 }
 
-.choice {
-  background: #222;
-  border-radius: 20px;
+.screenActive {
+  display: block;
+}
+
+/* =========================
+   Title Screen
+========================= */
+
+#screenTitle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 34px;
+  padding: 24px;
+}
+
+.title {
+  margin: 0;
+  text-align: center;
+  line-height: 1.05;
+  text-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
+.titleSmall {
+  display: block;
+  font-size: clamp(24px, 2.4vw, 40px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.titleBig {
+  display: block;
+  font-size: clamp(52px, 5.8vw, 96px);
+  font-weight: 900;
+}
+
+/* =========================
+   Game Screen
+========================= */
+
+#screenGame {
+  padding: 16px 20px 20px;
+}
+
+#screenGame.screenActive {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.question {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 110px;
+  max-width: var(--content-max);
+  width: 100%;
+  margin: 0 auto;
+  padding: 12px 18px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.qText {
+  position: relative;
+  z-index: 2;
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 16px 24px;
+  border-radius: 22px;
+  background: rgba(98, 98, 98, 0.76);
+  box-shadow: var(--shadow);
+  text-align: center;
+  white-space: pre-line;
+  line-height: 1.35;
+  font-size: clamp(30px, 3vw, 52px);
+  font-weight: 900;
+  letter-spacing: 0.03em;
+}
+
+#btnHint {
+  position: absolute;
+  right: 8px;
+  top: 10px;
+  z-index: 3;
+}
+
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(260px, 32%) minmax(0, 68%);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.mapWrap {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: 0.2s;
+  padding: 18px;
+}
+
+.mapBase,
+.mapHi {
+  position: absolute;
+  inset: 18px;
+  width: calc(100% - 36px);
+  height: calc(100% - 36px);
+  object-fit: contain;
+}
+
+.mapBase {
+  opacity: 0.98;
+}
+
+.mapHi {
   opacity: 0;
-  transform: translateY(20px);
+  pointer-events: none;
 }
 
-.choice.show {
-  animation: choiceIn 0.3s forwards;
+.grid {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 18px;
+  align-content: stretch;
 }
 
-@keyframes choiceIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.choice {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border: 6px solid transparent;
+  border-radius: 28px;
+  background: rgba(96, 96, 96, 0.92);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.choice:hover {
+  transform: translateY(-2px) scale(1.01);
+  background: rgba(112, 112, 112, 0.96);
 }
 
 .choice img {
-  max-width: 80%;
-  max-height: 80%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.choice.picked {
+  border-color: #5bc0ff;
+  box-shadow:
+    0 0 0 4px rgba(91, 192, 255, 0.18),
+    var(--shadow);
+}
+
+.choice.correct {
+  animation: correctBlink 0.6s ease 3;
+  border-color: #ff4b4b;
+}
+
+.choice.correctHold {
+  border-color: #ff4b4b;
+  box-shadow:
+    0 0 0 4px rgba(255, 75, 75, 0.22),
+    var(--shadow);
+}
+
+/* =========================
+   Result
+========================= */
+
+.result {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.resultCard {
+  width: min(620px, 92vw);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #23354c;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+  padding: 24px 24px 22px;
+  text-align: center;
+}
+
+.resLine1 {
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.resName {
+  margin-top: 8px;
+  font-size: clamp(38px, 4vw, 58px);
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.resKana {
+  margin-top: 4px;
+  font-size: clamp(20px, 2.2vw, 30px);
+  font-weight: 800;
+}
+
+.resLine2 {
+  min-height: 1.6em;
+  margin-top: 12px;
+  font-size: clamp(24px, 2.5vw, 36px);
+  font-weight: 900;
+}
+
+#btnNext {
+  margin-top: 18px;
+}
+
+/* =========================
+   Intro animation classes
+========================= */
+
+.qHero {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  text-align: center;
+  white-space: pre-line;
+  line-height: 1.25;
+  font-size: clamp(54px, 6.2vw, 110px);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.26),
+    0 0 24px rgba(255, 255, 255, 0.16);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.72);
+}
+
+.qHero.show {
+  animation: qHeroBurst 0.55s cubic-bezier(.22,.88,.24,1) forwards;
+}
+
+.qHero.hide {
+  animation: qHeroFade 0.28s ease forwards;
+}
+
+.choice.show {
+  animation: choiceIn 0.28s ease forwards;
+}
+
+.mapHi.blink {
+  animation: mapBlink 0.7s ease 4;
+}
+
+@keyframes qHeroBurst {
+  0% {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes qHeroFade {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes choiceIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes correctBlink {
+  0%, 100% {
+    border-color: #ff4b4b;
+    box-shadow:
+      0 0 0 4px rgba(255, 75, 75, 0.22),
+      var(--shadow);
+  }
+  50% {
+    border-color: rgba(255, 75, 75, 0.1);
+    box-shadow:
+      0 0 0 0 rgba(255, 75, 75, 0),
+      var(--shadow);
+  }
+}
+
+@keyframes mapBlink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.18;
+  }
+}
+
+/* =========================
+   Responsive
+========================= */
+
+@media (max-width: 980px) {
+  .stage {
+    grid-template-columns: 1fr;
+    grid-template-rows: 220px 1fr;
+  }
+
+  .question {
+    min-height: 96px;
+  }
+
+  .qText {
+    font-size: clamp(24px, 4.6vw, 38px);
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    padding: 8px 12px;
+  }
+
+  .brand {
+    font-size: 16px;
+  }
+
+  #screenGame {
+    padding: 10px 12px 14px;
+  }
+
+  .question {
+    min-height: 84px;
+    padding: 8px 8px 0;
+  }
+
+  .qText {
+    padding: 12px 16px;
+    font-size: clamp(20px, 5vw, 28px);
+    border-radius: 18px;
+  }
+
+  .stage {
+    gap: 12px;
+  }
+
+  .grid {
+    gap: 12px;
+  }
+
+  .choice {
+    border-radius: 20px;
+    padding: 12px;
+  }
+
+  .resultCard {
+    padding: 20px 18px 18px;
+  }
 }
