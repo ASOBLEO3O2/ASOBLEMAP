@@ -34,7 +34,6 @@
 
         <div class="stage">
           <div id="qHero" class="qHero" aria-hidden="true"></div>
-
           <div id="grid" class="grid"></div>
 
           <div id="result" class="result" hidden>
@@ -46,38 +45,37 @@
               <button id="btnNext" class="btnPrimary small" type="button">つぎへ</button>
             </div>
           </div>
-
-          <div id="mapStage" class="mapStage" hidden>
-            <div class="mapStageCard">
-              <div id="mapLead" class="mapLead">ココだよ！</div>
-
-              <div class="mapObjectWrap">
-                <object
-                  id="japanMap"
-                  class="japanMap"
-                  type="image/svg+xml"
-                  data="map/japan.svg"
-                  aria-label="日本地図">
-                </object>
-              </div>
-
-              <div id="mapPrefName" class="mapPrefName" hidden></div>
-              <div id="mapPrefKana" class="mapPrefKana" hidden></div>
-
-              <button id="btnMapNext" class="btnPrimary small" type="button">
-                つぎのもんだいへ
-              </button>
-            </div>
-          </div>
         </div>
       </section>
 
     </main>
 
+    <section id="mapStage" class="mapStage" hidden>
+      <div class="mapStageInner">
+        <div class="mapTopLine">ココだよ！</div>
+
+        <div class="mapCanvasWrap">
+          <object
+            id="japanMap"
+            class="japanMap"
+            type="image/svg+xml"
+            data="map/japan.svg"
+            aria-label="日本地図">
+          </object>
+        </div>
+
+        <div id="mapPrefName" class="mapPrefName" hidden></div>
+        <div id="mapPrefKana" class="mapPrefKana" hidden></div>
+
+        <div class="mapButtons">
+          <button id="btnMapNext" class="btnPrimary small" type="button">つぎのもんだいへ</button>
+        </div>
+      </div>
+    </section>
+
     <footer class="footer">
       <span id="badge" class="badge">ready</span>
     </footer>
-
   </div>
 
   <script type="module" src="js/app.js"></script>
