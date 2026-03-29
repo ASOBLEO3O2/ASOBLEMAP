@@ -118,6 +118,7 @@ function normalizePrefs(raw) {
       kanji: String(p.kanji || ""),
       kana: String(p.kana || ""),
       romaji: String(p.romaji || ""),
+      svgId: String(p.svgId || ""),
       regionId: String(p.regionId || ""),
       regionLabel: String(p.regionLabel || ""),
       silhouette: p.silhouette || null,
@@ -528,6 +529,23 @@ function zoomToTarget(target) {
   }
 }
 
+function findMapTarget(pref) {
+  if (!svgDoc || !pref) return null;
+
+  if (pref.svgId) {
+    const bySvgId = svgDoc.getElementById(pref.svgId);
+    if (bySvgId) return bySvgId;
+  }
+
+  const byCodeGroup = svgDoc.querySelector(`g[id="${pref.code}"]`);
+  if (byCodeGroup) return byCodeGroup;
+
+  const byCodeAny = svgDoc.getElementById(pref.code);
+  if (byCodeAny) return byCodeAny;
+
+  return null;
+}
+
 async function startMapSequence(pref) {
   if (!pref) return;
 
@@ -547,10 +565,14 @@ async function startMapSequence(pref) {
   clearMapHighlight();
   resetMapView();
 
-  const target = svgDoc.getElementById(pref.svgId);
+  const target = findMapTarget(pref);
   if (!target) {
-    console.warn("map target not found:", pref.code);
-    setBadge(`map id ng: ${pref.code}`);
+    console.warn("map target not found:", {
+      code: pref.code,
+      svgId: pref.svgId,
+      kanji: pref.kanji,
+    });
+    setBadge(`map id ng: ${pref.svgId || pref.code}`);
     return;
   }
 
