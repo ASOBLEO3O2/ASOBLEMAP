@@ -650,7 +650,7 @@ els.btnOpenDrawer?.addEventListener("click", () => {
     hideMapStage();
     setBadge("loading...");
     await loadPrefs();
-    setBadge("ready");
+    setBadge(`ready: ${PREFS.length}`);
   } catch (err) {
     console.error(err);
     setBadge("load error");
