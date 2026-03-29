@@ -1,4 +1,4 @@
-// ASOBLE 都道府県シルエットクイズ (v0.4)
+// ASOBLE 都道府県シルエットクイズ (v0.5)
 // - 問題文：かな
 // - 選択肢：4枚シルエット（毎回ランダム配置）
 // - 地方バランス（偏り防止）あり
@@ -258,32 +258,6 @@ function initJapanSvg() {
   }
 }
 
-function getMapTarget(pref) {
-  if (!svgDoc || !pref) return null;
-
-  const candidates = [
-    pref.mapId,
-    pref.svgId,
-    pref.prefCode,
-    pref.id,
-  ]
-    .filter((v) => v !== undefined && v !== null && String(v).trim() !== "")
-    .map((v) => String(v));
-
-  for (const key of candidates) {
-    let el = svgDoc.getElementById(key);
-    if (el) return el;
-
-    el = svgDoc.querySelector(`[id="${CSS.escape(key)}"]`);
-    if (el) return el;
-
-    el = svgDoc.querySelector(`[name="${CSS.escape(key)}"]`);
-    if (el) return el;
-  }
-
-  return null;
-}
-
 function clearMapHighlight() {
   if (currentMapTarget) {
     currentMapTarget.classList.remove("pref-blink");
@@ -347,19 +321,20 @@ function startMapBlink(pref) {
   clearMapHighlight();
   ensureSvgBlinkStyle();
 
-  const target = getMapTarget(pref);
+  const target = svgDoc.getElementById(pref.code);
+
   if (!target) {
-    console.warn("prefecture shape not found in SVG:", pref);
+    console.warn("見つからない:", pref.code);
     return;
   }
 
   currentMapTarget = target;
   showMap();
 
-  target.style.fill = "#ff6b6b";
+  target.style.fill = "#ff4f4f";
   target.style.stroke = "#ffffff";
   target.style.strokeWidth = "1.5";
-  target.style.filter = "drop-shadow(0 0 6px rgba(255,107,107,0.7))";
+  target.style.filter = "drop-shadow(0 0 6px rgba(255,79,79,0.7))";
 
   void target.getBBox();
   target.classList.add("pref-blink");
