@@ -1,35 +1,17 @@
-// ASOBLE 都道府県シルエットクイズ (v0.6)
-// - 問題文：かな
-// - 選択肢：4枚シルエット（毎回ランダム配置）
-// - 地方バランス（偏り防止）あり
-// - 不正解：おしい！それは〇〇県だよ！＋正解カードを赤枠点滅
-// - 正解：正解カードを赤枠点滅 → 「〇〇県はココだよ！」→ SVG地図ハイライト点滅
-// - 追加演出：問題バーン → 上に残る → 4択を順に表示
-
 const $ = (sel) => document.querySelector(sel);
 
 const els = {
   badge: $("#badge"),
-
-  // drawer
-  drawer: $("#drawer"),
-  drawerBackdrop: $("#drawerBackdrop"),
   btnOpenDrawer: $("#btnOpenDrawer"),
-  btnCloseDrawer: $("#btnCloseDrawer"),
-  optHint: $("#optHint"),
-  optSound: $("#optSound"),
 
-  // screens
   screenTitle: $("#screenTitle"),
   screenGame: $("#screenGame"),
   btnStart: $("#btnStart"),
 
-  // game UI
   qText: $("#qText"),
-  btnHint: $("#btnHint"),
+  qHero: $("#qHero"),
   grid: $("#grid"),
 
-  // result overlay
   result: $("#result"),
   resLine1: $("#resLine1"),
   resName: $("#resName"),
@@ -37,157 +19,117 @@ const els = {
   resLine2: $("#resLine2"),
   btnNext: $("#btnNext"),
 
-  // SVG map
+  mapStage: $("#mapStage"),
+  mapLead: $("#mapLead"),
   japanMap: $("#japanMap"),
-  mapWrap: $(".mapWrap"),
+  mapPrefName: $("#mapPrefName"),
+  btnMapNext: $("#btnMapNext"),
 };
+
+const PREFS_JSON_PATH = "data/prefs.json";
 
 let PREFS = [];
 let PREFS_BY_REGION = new Map();
-let lastRegions = [];
-let lastPrefId = null;
 
-let current = null; // { correct, choices, locked, token }
+let current = null;
 let questionToken = 0;
 
 let svgDoc = null;
-let currentMapTarget = null;
 let mapReady = false;
-
-/* ========= UI helpers ========= */
+let currentMapTarget = null;
 
 function setBadge(text) {
   if (els.badge) els.badge.textContent = text;
 }
 
-function openDrawer() {
-  if (!els.drawer) return;
-  els.drawer.classList.add("open");
-  els.drawer.setAttribute("aria-hidden", "false");
-  if (els.drawerBackdrop) els.drawerBackdrop.hidden = false;
-}
-
-function closeDrawer() {
-  if (!els.drawer) return;
-  els.drawer.classList.remove("open");
-  els.drawer.setAttribute("aria-hidden", "true");
-  if (els.drawerBackdrop) els.drawerBackdrop.hidden = true;
-}
-
-els.btnOpenDrawer?.addEventListener("click", openDrawer);
-els.btnCloseDrawer?.addEventListener("click", closeDrawer);
-els.drawerBackdrop?.addEventListener("click", closeDrawer);
-
-function showScreen(name) {
-  if (name === "title") {
-    if (els.screenTitle) {
-      els.screenTitle.hidden = false;
-      els.screenTitle.classList.add("screenActive");
-    }
-    if (els.screenGame) {
-      els.screenGame.hidden = true;
-      els.screenGame.classList.remove("screenActive");
-    }
-  } else {
-    if (els.screenTitle) {
-      els.screenTitle.hidden = true;
-      els.screenTitle.classList.remove("screenActive");
-    }
-    if (els.screenGame) {
-      els.screenGame.hidden = false;
-      els.screenGame.classList.add("screenActive");
-    }
-  }
-}
-
-/* ========= util ========= */
-
 function sleep(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-function ensureQuestionHero() {
-  let hero = $("#qHero");
-  if (!hero) {
-    hero = document.createElement("div");
-    hero.id = "qHero";
-    hero.className = "qHero";
-    els.screenGame.appendChild(hero);
+function showScreen(name) {
+  const isTitle = name === "title";
+  const isGame = name === "game";
+
+  if (els.screenTitle) {
+    els.screenTitle.hidden = !isTitle;
+    els.screenTitle.classList.toggle("screenActive", isTitle);
   }
-  return hero;
+
+  if (els.screenGame) {
+    els.screenGame.hidden = !isGame;
+    els.screenGame.classList.toggle("screenActive", isGame);
+  }
+}
+
+function hideResult() {
+  if (els.result) els.result.hidden = true;
+}
+
+function showResult() {
+  if (els.result) els.result.hidden = false;
+}
+
+function hideMapStage() {
+  if (els.mapStage) els.mapStage.hidden = true;
+  if (els.mapPrefName) {
+    els.mapPrefName.hidden = true;
+    els.mapPrefName.classList.remove("show");
+    els.mapPrefName.textContent = "";
+  }
+  clearMapHighlight();
+}
+
+function showMapStage() {
+  if (els.mapStage) els.mapStage.hidden = false;
 }
 
 function clearQuestionHero() {
-  const hero = $("#qHero");
-  if (!hero) return;
-  hero.classList.remove("show", "hide");
-  hero.textContent = "";
+  if (!els.qHero) return;
+  els.qHero.textContent = "";
+  els.qHero.classList.remove("show", "hide");
 }
 
 function resetQuestionArea() {
   if (els.qText) els.qText.textContent = "";
 }
 
-/* ========= Data ========= */
+function normalizePrefs(raw) {
+  const prefs = Array.isArray(raw?.prefs) ? raw.prefs : Array.isArray(raw) ? raw : [];
+  return prefs
+    .map((p) => ({
+      id: Number(p.id),
+      code: String(p.code || "").padStart(2, "0"),
+      kanji: String(p.kanji || ""),
+      kana: String(p.kana || ""),
+      romaji: String(p.romaji || ""),
+      regionId: String(p.regionId || ""),
+      regionLabel: String(p.regionLabel || ""),
+      silhouette: p.silhouette || null,
+      mapHighlight: p.mapHighlight || null,
+    }))
+    .filter((p) => p.id && p.code && p.kanji && p.kana && p.silhouette);
+}
 
 async function loadPrefs() {
-  const res = await fetch("data/prefs.json", { cache: "no-store" });
-  const json = await res.json();
-
-  PREFS = (json.prefs || []).filter((p) => p.silhouette);
-
-  const missing = json.missing || [];
-  if (missing.length) {
-    console.warn("missing assets:", missing);
-    setBadge(`素材不足: ${missing.map((m) => m[2]).join("、")}`);
-  } else {
-    setBadge("素材OK");
+  const res = await fetch(PREFS_JSON_PATH, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`都道府県データの読込に失敗しました: ${res.status}`);
   }
+
+  const json = await res.json();
+  PREFS = normalizePrefs(json);
 
   PREFS_BY_REGION = new Map();
   for (const p of PREFS) {
-    const k = String(p.regionId);
-    if (!PREFS_BY_REGION.has(k)) PREFS_BY_REGION.set(k, []);
-    PREFS_BY_REGION.get(k).push(p);
+    if (!PREFS_BY_REGION.has(p.regionId)) {
+      PREFS_BY_REGION.set(p.regionId, []);
+    }
+    PREFS_BY_REGION.get(p.regionId).push(p);
   }
-}
-
-function pickRegionBalanced() {
-  const regions = [...PREFS_BY_REGION.keys()];
-  const avoid = new Set(lastRegions.slice(-2));
-  let candidates = regions.filter((r) => !avoid.has(r));
-  if (candidates.length === 0) candidates = regions;
-
-  const recentCount = (rid) => lastRegions.filter((x) => x === rid).length;
-  candidates.sort((a, b) => recentCount(a) - recentCount(b));
-
-  const bestScore = recentCount(candidates[0]);
-  const best = candidates.filter((r) => recentCount(r) === bestScore);
-  return best[Math.floor(Math.random() * best.length)];
-}
-
-function pickCorrectPref() {
-  const rid = pickRegionBalanced();
-  const list = PREFS_BY_REGION.get(rid) || [];
-  if (!list.length) return null;
-
-  let pool = list;
-  if (lastPrefId != null && list.length > 1) {
-    pool = list.filter((p) => p.id !== lastPrefId);
-    if (!pool.length) pool = list;
-  }
-
-  const p = pool[Math.floor(Math.random() * pool.length)];
-
-  lastRegions.push(String(rid));
-  if (lastRegions.length > 18) lastRegions = lastRegions.slice(-18);
-  lastPrefId = p.id;
-
-  return p;
 }
 
 function shuffle(arr) {
-  const a = arr.slice();
+  const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
@@ -195,16 +137,20 @@ function shuffle(arr) {
   return a;
 }
 
+function pickCorrectPref() {
+  if (!PREFS.length) return null;
+  return PREFS[Math.floor(Math.random() * PREFS.length)] || null;
+}
+
 function buildChoices(correct) {
   const wrongs = [];
   const used = new Set([correct.id]);
 
   const regionIds = [...PREFS_BY_REGION.keys()].filter(
-    (r) => r !== String(correct.regionId)
+    (rid) => rid !== String(correct.regionId)
   );
-  const regionOrder = shuffle(regionIds);
 
-  for (const rid of regionOrder) {
+  for (const rid of shuffle(regionIds)) {
     const list = PREFS_BY_REGION.get(rid) || [];
     const cands = shuffle(list).filter((p) => !used.has(p.id));
     if (cands[0]) {
@@ -224,157 +170,8 @@ function buildChoices(correct) {
     }
   }
 
-  return shuffle([correct, ...wrongs]);
+  return shuffle([correct, ...wrongs.slice(0, 3)]);
 }
-
-/* ========= SVG Map ========= */
-
-function initJapanSvg() {
-  if (!els.japanMap) return;
-
-  const bindSvg = () => {
-    try {
-      svgDoc = els.japanMap.contentDocument || null;
-      mapReady = !!svgDoc;
-      if (mapReady) {
-        setBadge("map ready");
-      } else {
-        console.warn("SVG map not ready");
-      }
-    } catch (err) {
-      console.warn("failed to access SVG map:", err);
-      svgDoc = null;
-      mapReady = false;
-    }
-  };
-
-  els.japanMap.addEventListener("load", bindSvg);
-
-  if (els.japanMap.contentDocument) {
-    bindSvg();
-  }
-}
-
-function clearMapHighlight() {
-  if (currentMapTarget) {
-    currentMapTarget.classList.remove("pref-blink");
-    currentMapTarget.style.fill = "";
-    currentMapTarget.style.stroke = "";
-    currentMapTarget.style.strokeWidth = "";
-    currentMapTarget.style.filter = "";
-
-    const paths = currentMapTarget.querySelectorAll("path");
-    paths.forEach((path) => {
-      path.style.fill = "";
-      path.style.stroke = "";
-      path.style.strokeWidth = "";
-      path.style.filter = "";
-    });
-
-    currentMapTarget = null;
-  }
-
-  if (svgDoc) {
-    const styleEl = svgDoc.getElementById("quiz-map-style");
-    if (styleEl) styleEl.remove();
-  }
-}
-
-function ensureSvgBlinkStyle() {
-  if (!svgDoc) return;
-  if (svgDoc.getElementById("quiz-map-style")) return;
-
-  const style = svgDoc.createElementNS("http://www.w3.org/2000/svg", "style");
-  style.setAttribute("id", "quiz-map-style");
-  style.textContent = `
-    .pref-blink {
-      animation: prefBlink 0.6s ease 4;
-    }
-    @keyframes prefBlink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.25; }
-    }
-  `;
-  svgDoc.documentElement.appendChild(style);
-}
-
-function showMap() {
-  if (els.mapWrap) {
-    els.mapWrap.style.display = "flex";
-    els.mapWrap.style.opacity = "1";
-  }
-}
-
-function hideMap() {
-  if (els.mapWrap) {
-    els.mapWrap.style.opacity = "0";
-  }
-  clearMapHighlight();
-}
-
-function startMapBlink(pref) {
-  if (!mapReady || !svgDoc) {
-    console.warn("SVG map is not ready yet");
-    return;
-  }
-
-  clearMapHighlight();
-  ensureSvgBlinkStyle();
-
-  const target = svgDoc.querySelector(`g[id="${pref.code}"]`);
-
-  if (!target) {
-    console.warn("見つからない:", pref.code);
-    return;
-  }
-
-  currentMapTarget = target;
-  showMap();
-
-  target.classList.add("pref-blink");
-
-  const paths = target.querySelectorAll("path");
-  if (paths.length) {
-    paths.forEach((path) => {
-      path.style.fill = "#ff4f4f";
-      path.style.stroke = "#ffffff";
-      path.style.strokeWidth = "1.5";
-      path.style.filter = "drop-shadow(0 0 6px rgba(255,79,79,0.7))";
-    });
-  } else {
-    target.style.fill = "#ff4f4f";
-    target.style.stroke = "#ffffff";
-    target.style.strokeWidth = "1.5";
-    target.style.filter = "drop-shadow(0 0 6px rgba(255,79,79,0.7))";
-  }
-}
-
-/* ========= Result UI ========= */
-
-function hideResult() {
-  if (els.result) els.result.hidden = true;
-}
-
-function showResult({ correct, picked, isCorrect }) {
-  if (els.result) els.result.hidden = false;
-
-  if (els.resLine1) {
-    els.resLine1.textContent = isCorrect
-      ? "✨せいかい！✨"
-      : `おしい！それは ${picked.kanji} だよ！`;
-  }
-
-  if (els.resName) els.resName.textContent = correct.kanji;
-  if (els.resKana) els.resKana.textContent = `（${correct.kana}）`;
-  if (els.resLine2) els.resLine2.textContent = "";
-
-  window.setTimeout(() => {
-    if (els.resLine2) els.resLine2.textContent = `${correct.kanji} はココだよ！`;
-    startMapBlink(correct);
-  }, 600);
-}
-
-/* ========= Question render ========= */
 
 function buildQuestionText(correct) {
   return `このシルエットから\n${correct.kana} をえらんでね！`;
@@ -390,7 +187,7 @@ function addCorrectBlink(el) {
   el.classList.add("correct");
   window.setTimeout(() => {
     el.classList.add("correctHold");
-  }, 0.6 * 3 * 1000 + 50);
+  }, 1850);
 }
 
 function renderChoicesOnly(choices) {
@@ -403,7 +200,7 @@ function renderChoicesOnly(choices) {
     btn.className = "choice";
     btn.type = "button";
     btn.dataset.prefId = String(p.id);
-    btn.setAttribute("aria-label", "えらぶ");
+    btn.setAttribute("aria-label", p.kana);
 
     const img = document.createElement("img");
     img.src = p.silhouette;
@@ -429,9 +226,10 @@ async function renderQuestionWithIntro() {
   const token = ++questionToken;
 
   hideResult();
-  hideMap();
+  hideMapStage();
   clearQuestionHero();
   resetQuestionArea();
+
   if (els.grid) els.grid.innerHTML = "";
 
   const correct = pickCorrectPref();
@@ -441,29 +239,32 @@ async function renderQuestionWithIntro() {
   }
 
   const choices = buildChoices(correct);
-  current = { correct, choices, locked: true, token };
+  current = {
+    correct,
+    choices,
+    picked: null,
+    isCorrect: false,
+    locked: true,
+    phase: "question",
+    token,
+  };
 
   const questionText = buildQuestionText(correct);
 
-  const hintOn = !!els.optHint?.checked;
-  if (els.btnHint) {
-    els.btnHint.hidden = !hintOn;
-    els.btnHint.onclick = () => {
-      alert(`ヒント：${correct.regionLabel} だよ！`);
-    };
+  if (els.qHero) {
+    els.qHero.textContent = questionText;
+    els.qHero.classList.remove("hide");
+    void els.qHero.offsetWidth;
+    els.qHero.classList.add("show");
   }
-
-  const hero = ensureQuestionHero();
-  hero.textContent = questionText;
-  hero.classList.remove("hide");
-  void hero.offsetWidth;
-  hero.classList.add("show");
 
   await sleep(1050);
   if (!current || current.token !== token) return;
 
-  hero.classList.remove("show");
-  hero.classList.add("hide");
+  if (els.qHero) {
+    els.qHero.classList.remove("show");
+    els.qHero.classList.add("hide");
+  }
 
   if (els.qText) els.qText.textContent = questionText;
 
@@ -471,17 +272,29 @@ async function renderQuestionWithIntro() {
   if (!current || current.token !== token) return;
 
   renderChoicesOnly(choices);
-
   current.locked = false;
 
   await animateChoicesIn(token);
-
   if (!current || current.token !== token) return;
-  hero.classList.remove("show", "hide");
-  hero.textContent = "";
+
+  clearQuestionHero();
 }
 
-/* ========= Pick ========= */
+function setResultTexts({ correct, picked, isCorrect }) {
+  if (els.resLine1) {
+    els.resLine1.textContent = isCorrect
+      ? "✨せいかい！✨"
+      : `おしい！それは ${picked.kanji} だよ！`;
+  }
+
+  if (els.resName) els.resName.textContent = correct.kanji;
+  if (els.resKana) els.resKana.textContent = `（${correct.kana}）`;
+  if (els.resLine2) {
+    els.resLine2.textContent = isCorrect
+      ? "つぎへ をおすと日本地図で場所がわかるよ！"
+      : "つぎへ をおすと日本地図で場所がわかるよ！";
+  }
+}
 
 function onPick(pickedId, pickedBtnEl) {
   if (!current || current.locked) return;
@@ -495,6 +308,9 @@ function onPick(pickedId, pickedBtnEl) {
   }
 
   const isCorrect = pickedId === correct.id;
+  current.picked = picked;
+  current.isCorrect = isCorrect;
+  current.phase = "result";
 
   resetChoiceClasses();
 
@@ -503,34 +319,220 @@ function onPick(pickedId, pickedBtnEl) {
   const correctEl = els.grid?.querySelector(`[data-pref-id="${correct.id}"]`);
   if (correctEl) addCorrectBlink(correctEl);
 
-  showResult({ correct, picked, isCorrect });
+  setResultTexts({ correct, picked, isCorrect });
+  showResult();
 }
 
-/* ========= Events ========= */
+function initJapanSvg() {
+  if (!els.japanMap) return;
+
+  const bindSvg = () => {
+    try {
+      svgDoc = els.japanMap.contentDocument || null;
+      mapReady = !!svgDoc;
+      if (mapReady) {
+        setBadge("map ready");
+      }
+    } catch (err) {
+      svgDoc = null;
+      mapReady = false;
+      console.warn("failed to access SVG map:", err);
+    }
+  };
+
+  els.japanMap.addEventListener("load", bindSvg);
+
+  if (els.japanMap.contentDocument) {
+    bindSvg();
+  }
+}
+
+async function waitForSvgReady(timeoutMs = 4000) {
+  const started = Date.now();
+
+  while (Date.now() - started < timeoutMs) {
+    try {
+      if (els.japanMap?.contentDocument) {
+        svgDoc = els.japanMap.contentDocument;
+        mapReady = true;
+        return true;
+      }
+    } catch (err) {
+      console.warn("waitForSvgReady error:", err);
+    }
+    await sleep(80);
+  }
+
+  return !!mapReady;
+}
+
+function clearMapHighlight() {
+  if (currentMapTarget) {
+    currentMapTarget.classList.remove("pref-outline-blink");
+
+    currentMapTarget.style.stroke = "";
+    currentMapTarget.style.strokeWidth = "";
+    currentMapTarget.style.strokeLinejoin = "";
+    currentMapTarget.style.filter = "";
+    currentMapTarget.style.paintOrder = "";
+
+    const paths = currentMapTarget.querySelectorAll("path, polygon, polyline");
+    paths.forEach((node) => {
+      node.style.stroke = "";
+      node.style.strokeWidth = "";
+      node.style.strokeLinejoin = "";
+      node.style.filter = "";
+      node.style.paintOrder = "";
+    });
+
+    currentMapTarget = null;
+  }
+
+  if (svgDoc) {
+    const styleEl = svgDoc.getElementById("quiz-map-style");
+    if (styleEl) styleEl.remove();
+  }
+}
+
+function ensureSvgBlinkStyle() {
+  if (!svgDoc) return;
+  if (svgDoc.getElementById("quiz-map-style")) return;
+
+  const style = svgDoc.createElementNS("http://www.w3.org/2000/svg", "style");
+  style.setAttribute("id", "quiz-map-style");
+  style.textContent = `
+    .pref-outline-blink {
+      animation: prefOutlineBlink 0.62s ease 4;
+    }
+
+    @keyframes prefOutlineBlink {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.38;
+      }
+    }
+  `;
+
+  svgDoc.documentElement.appendChild(style);
+}
+
+function applyOutlineToTarget(target) {
+  const nodes = target.querySelectorAll("path, polygon, polyline");
+
+  if (nodes.length) {
+    nodes.forEach((node) => {
+      node.style.stroke = "#ff4f4f";
+      node.style.strokeWidth = "5";
+      node.style.strokeLinejoin = "round";
+      node.style.paintOrder = "stroke fill";
+      node.style.filter = "drop-shadow(0 0 8px rgba(255,79,79,0.75))";
+    });
+  } else {
+    target.style.stroke = "#ff4f4f";
+    target.style.strokeWidth = "5";
+    target.style.strokeLinejoin = "round";
+    target.style.paintOrder = "stroke fill";
+    target.style.filter = "drop-shadow(0 0 8px rgba(255,79,79,0.75))";
+  }
+}
+
+async function startMapSequence(pref) {
+  if (!pref) return;
+
+  showMapStage();
+
+  if (els.mapLead) {
+    els.mapLead.textContent = "ココだよ！";
+  }
+
+  if (els.mapPrefName) {
+    els.mapPrefName.hidden = true;
+    els.mapPrefName.classList.remove("show");
+    els.mapPrefName.textContent = "";
+  }
+
+  const ready = await waitForSvgReady();
+  if (!ready || !svgDoc) {
+    setBadge("map wait");
+    if (els.mapLead) {
+      els.mapLead.textContent = "地図をよみこみ中…";
+    }
+    return;
+  }
+
+  clearMapHighlight();
+  ensureSvgBlinkStyle();
+
+  const target = svgDoc.querySelector(`g[id="${pref.code}"]`);
+  if (!target) {
+    console.warn("見つからない:", pref.code);
+    setBadge(`map id ng: ${pref.code}`);
+    return;
+  }
+
+  currentMapTarget = target;
+  applyOutlineToTarget(target);
+  target.classList.add("pref-outline-blink");
+
+  await sleep(700);
+
+  if (!current || current.correct.id !== pref.id || current.phase !== "map") {
+    return;
+  }
+
+  if (els.mapPrefName) {
+    els.mapPrefName.textContent = pref.kanji;
+    els.mapPrefName.hidden = false;
+    void els.mapPrefName.offsetWidth;
+    els.mapPrefName.classList.add("show");
+  }
+}
+
+async function moveResultToMapStage() {
+  if (!current || current.phase !== "result") return;
+
+  hideResult();
+  current.phase = "map";
+
+  await startMapSequence(current.correct);
+}
+
+function moveMapToNextQuestion() {
+  if (!current || current.phase !== "map") return;
+  renderQuestionWithIntro();
+}
 
 els.btnNext?.addEventListener("click", () => {
-  renderQuestionWithIntro();
+  moveResultToMapStage();
 });
 
-els.btnStart?.addEventListener("click", async () => {
+els.btnMapNext?.addEventListener("click", () => {
+  moveMapToNextQuestion();
+});
+
+els.btnStart?.addEventListener("click", () => {
   showScreen("game");
   renderQuestionWithIntro();
 });
 
-els.optHint?.addEventListener("change", () => {
-  if (!current || !els.btnHint) return;
-  els.btnHint.hidden = !els.optHint.checked;
+els.btnOpenDrawer?.addEventListener("click", () => {
+  // 今回は設定パネル未使用のため何もしない
 });
 
-/* ========= Boot ========= */
-
 (async function main() {
-  showScreen("title");
-  closeDrawer();
-  initJapanSvg();
-  setBadge("loading...");
-  await loadPrefs();
-  setBadge("ready");
-  hideResult();
-  hideMap();
+  try {
+    showScreen("title");
+    initJapanSvg();
+    hideResult();
+    hideMapStage();
+    setBadge("loading...");
+    await loadPrefs();
+    setBadge("ready");
+  } catch (err) {
+    console.error(err);
+    setBadge("load error");
+    alert("データの読み込みに失敗しました。JSONの場所を確認してください。");
+  }
 })();
