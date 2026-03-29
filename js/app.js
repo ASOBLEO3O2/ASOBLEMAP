@@ -547,7 +547,7 @@ async function startMapSequence(pref) {
   clearMapHighlight();
   resetMapView();
 
-  const target = svgDoc.querySelector(`g[id="${pref.code}"]`);
+  const target = svgDoc.getElementById(pref.svgId);
   if (!target) {
     console.warn("map target not found:", pref.code);
     setBadge(`map id ng: ${pref.code}`);
