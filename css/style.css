@@ -1,4 +1,4 @@
-/* 全体：横画面前提 */
+/* 全体 */
 body {
   margin: 0;
   background: #111;
@@ -6,44 +6,70 @@ body {
   font-family: sans-serif;
 }
 
-/* タイトル */
-.hero-title {
-  font-size: 48px;
-  font-weight: bold;
-  text-align: center;
-  padding: 10px;
-  background: linear-gradient(90deg, #ffcc00, #ff6600);
-  color: #000;
-}
+/* ===== 既存 ===== */
 
-/* ゲーム画面を横レイアウトに */
 #screenGame {
   display: flex;
   height: calc(100vh - 80px);
+  position: relative;
 }
 
-/* 左：問題 */
-.question-area {
-  flex: 1;
+/* 上に残る問題 */
+.qText {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 28px;
+  font-weight: bold;
+  text-align: center;
+  z-index: 5;
+}
+
+/* 中央バーン用 */
+.qHero {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 48px;
-  font-weight: bold;
+  font-size: 72px;
+  font-weight: 900;
   text-align: center;
-  padding: 20px;
+  opacity: 0;
+  transform: scale(0.5);
+  z-index: 10;
 }
 
-/* 右：選択肢 */
-.choices {
-  flex: 1;
+/* アニメーション */
+.qHero.show {
+  animation: burst 0.6s forwards;
+}
+
+.qHero.hide {
+  animation: fadeOut 0.3s forwards;
+}
+
+@keyframes burst {
+  0% { opacity: 0; transform: scale(0.4); }
+  70% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeOut {
+  to { opacity: 0; transform: scale(0.9); }
+}
+
+/* ===== 選択肢 ===== */
+
+.grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  padding: 20px;
+  padding: 80px 20px 20px;
+  width: 100%;
 }
 
-/* 選択肢カード */
 .choice {
   background: #222;
   border-radius: 20px;
@@ -52,14 +78,21 @@ body {
   justify-content: center;
   cursor: pointer;
   transition: 0.2s;
+  opacity: 0;
+  transform: translateY(20px);
 }
 
-.choice:hover {
-  transform: scale(1.05);
-  background: #333;
+.choice.show {
+  animation: choiceIn 0.3s forwards;
 }
 
-/* シルエット画像 */
+@keyframes choiceIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .choice img {
   max-width: 80%;
   max-height: 80%;
