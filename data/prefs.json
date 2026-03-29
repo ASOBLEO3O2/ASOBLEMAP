@@ -1,61 +1,12 @@
 {
   "prefs": [
-    { "id": 1, "code": "01", "kanji": "北海道", "kana": "ほっかいどう", "romaji": "hokkaidou", "svgId": "Hokkaido", "regionId": "1", "regionLabel": "北海道", "silhouette": "images/silhouettes/01_hokkaidou.png", "mapHighlight": "map/highlight/01_hokkaidou.png" },
-    { "id": 2, "code": "02", "kanji": "青森県", "kana": "あおもりけん", "romaji": "aomori", "svgId": "Aomori", "regionId": "2", "regionLabel": "東北", "silhouette": "images/silhouettes/02_aomori.png", "mapHighlight": "map/highlight/02_aomori.png" },
-    { "id": 3, "code": "03", "kanji": "岩手県", "kana": "いわてけん", "romaji": "iwate", "svgId": "Iwate", "regionId": "2", "regionLabel": "東北", "silhouette": "images/silhouettes/03_iwate.png", "mapHighlight": "map/highlight/03_iwate.png" },
-    { "id": 4, "code": "04", "kanji": "宮城県", "kana": "みやぎけん", "romaji": "miyagi", "svgId": "Miyagi", "regionId": "2", "regionLabel": "東北", "silhouette": "images/silhouettes/04_miyagi.png", "mapHighlight": "map/highlight/04_miyagi.png" },
-    { "id": 5, "code": "05", "kanji": "秋田県", "kana": "あきたけん", "romaji": "akita", "svgId": "Akita", "regionId": "2", "regionLabel": "東北", "silhouette": "images/silhouettes/05_akita.png", "mapHighlight": "map/highlight/05_akita.png" },
-    { "id": 6, "code": "06", "kanji": "山形県", "kana": "やまがたけん", "romaji": "yamagata", "svgId": "Yamagata", "regionId": "2", "regionLabel": "東北", "silhouette": "images/silhouettes/06_yamagata.png", "mapHighlight": "map/highlight/06_yamagata.png" },
-    { "id": 7, "code": "07", "kanji": "福島県", "kana": "ふくしまけん", "romaji": "fukushima", "svgId": "Fukushima", "regionId": "2", "regionLabel": "東北", "silhouette": "images/silhouettes/07_fukushima.png", "mapHighlight": "map/highlight/07_fukushima.png" },
+    { "id": 1, "code": "01", "kanji": "北海道", "kana": "ほっかいどう", "romaji": "hokkaidou", "svgId": "Hokkaido", "regionId": "1", "regionLabel": "北海道", "silhouette": "images/silhouettes/1_hokkaidou.png" },
 
-    { "id": 8, "code": "08", "kanji": "茨城県", "kana": "いばらきけん", "romaji": "ibaraki", "svgId": "Ibaraki", "regionId": "3", "regionLabel": "関東", "silhouette": "images/silhouettes/08_ibaraki.png", "mapHighlight": "map/highlight/08_ibaraki.png" },
-    { "id": 9, "code": "09", "kanji": "栃木県", "kana": "とちぎけん", "romaji": "tochigi", "svgId": "Tochigi", "regionId": "3", "regionLabel": "関東", "silhouette": "images/silhouettes/09_tochigi.png", "mapHighlight": "map/highlight/09_tochigi.png" },
-    { "id": 10, "code": "10", "kanji": "群馬県", "kana": "ぐんまけん", "romaji": "gunma", "svgId": "Gumma", "regionId": "3", "regionLabel": "関東", "silhouette": "images/silhouettes/10_gunma.png", "mapHighlight": "map/highlight/10_gunma.png" },
-    { "id": 11, "code": "11", "kanji": "埼玉県", "kana": "さいたまけん", "romaji": "saitama", "svgId": "Saitama", "regionId": "3", "regionLabel": "関東", "silhouette": "images/silhouettes/11_saitama.png", "mapHighlight": "map/highlight/11_saitama.png" },
-    { "id": 12, "code": "12", "kanji": "千葉県", "kana": "ちばけん", "romaji": "chiba", "svgId": "Chiba", "regionId": "3", "regionLabel": "関東", "silhouette": "images/silhouettes/12_chiba.png", "mapHighlight": "map/highlight/12_chiba.png" },
-    { "id": 13, "code": "13", "kanji": "東京都", "kana": "とうきょうと", "romaji": "tokyo", "svgId": "Tokyo", "regionId": "3", "regionLabel": "関東", "silhouette": "images/silhouettes/13_tokyo.png", "mapHighlight": "map/highlight/13_tokyo.png" },
-    { "id": 14, "code": "14", "kanji": "神奈川県", "kana": "かながわけん", "romaji": "kanagawa", "svgId": "Kanagawa", "regionId": "3", "regionLabel": "関東", "silhouette": "images/silhouettes/14_kanagawa.png", "mapHighlight": "map/highlight/14_kanagawa.png" },
-
-    { "id": 15, "code": "15", "kanji": "新潟県", "kana": "にいがたけん", "romaji": "niigata", "svgId": "Nigata", "regionId": "4", "regionLabel": "中部", "silhouette": "images/silhouettes/15_niigata.png", "mapHighlight": "map/highlight/15_niigata.png" },
-
-    { "id": 16, "code": "16", "kanji": "富山県", "kana": "とやまけん", "romaji": "toyama", "svgId": "Toyama", "regionId": "4", "regionLabel": "中部", "silhouette": "images/silhouettes/16_toyama.png", "mapHighlight": "map/highlight/16_toyama.png" },
-    { "id": 17, "code": "17", "kanji": "石川県", "kana": "いしかわけん", "romaji": "ishikawa", "svgId": "Ishikawa", "regionId": "4", "regionLabel": "中部", "silhouette": "images/silhouettes/17_ishikawa.png", "mapHighlight": "map/highlight/17_ishikawa.png" },
-    { "id": 18, "code": "18", "kanji": "福井県", "kana": "ふくいけん", "romaji": "fukui", "svgId": "Fukui", "regionId": "4", "regionLabel": "中部", "silhouette": "images/silhouettes/18_fukui.png", "mapHighlight": "map/highlight/18_fukui.png" },
-
-    { "id": 19, "code": "19", "kanji": "山梨県", "kana": "やまなしけん", "romaji": "yamanashi", "svgId": "Yamanashi", "regionId": "4", "regionLabel": "中部", "silhouette": "images/silhouettes/19_yamanashi.png", "mapHighlight": "map/highlight/19_yamanashi.png" },
-    { "id": 20, "code": "20", "kanji": "長野県", "kana": "ながのけん", "romaji": "nagano", "svgId": "Nagano", "regionId": "4", "regionLabel": "中部", "silhouette": "images/silhouettes/20_nagano.png", "mapHighlight": "map/highlight/20_nagano.png" },
-
-    { "id": 21, "code": "21", "kanji": "岐阜県", "kana": "ぎふけん", "romaji": "gifu", "svgId": "Gifu", "regionId": "4", "regionLabel": "中部", "silhouette": "images/silhouettes/21_gifu.png", "mapHighlight": "map/highlight/21_gifu.png" },
-    { "id": 22, "code": "22", "kanji": "静岡県", "kana": "しずおかけん", "romaji": "shizuoka", "svgId": "Shizuoka", "regionId": "4", "regionLabel": "中部", "silhouette": "images/silhouettes/22_shizuoka.png", "mapHighlight": "map/highlight/22_shizuoka.png" },
-    { "id": 23, "code": "23", "kanji": "愛知県", "kana": "あいちけん", "romaji": "aichi", "svgId": "Aichi", "regionId": "4", "regionLabel": "中部", "silhouette": "images/silhouettes/23_aichi.png", "mapHighlight": "map/highlight/23_aichi.png" },
-
-    { "id": 24, "code": "24", "kanji": "三重県", "kana": "みえけん", "romaji": "mie", "svgId": "Mie", "regionId": "5", "regionLabel": "近畿", "silhouette": "images/silhouettes/24_mie.png", "mapHighlight": "map/highlight/24_mie.png" },
-    { "id": 25, "code": "25", "kanji": "滋賀県", "kana": "しがけん", "romaji": "shiga", "svgId": "Shiga", "regionId": "5", "regionLabel": "近畿", "silhouette": "images/silhouettes/25_shiga.png", "mapHighlight": "map/highlight/25_shiga.png" },
-    { "id": 26, "code": "26", "kanji": "京都府", "kana": "きょうとふ", "romaji": "kyouto", "svgId": "Kyoto", "regionId": "5", "regionLabel": "近畿", "silhouette": "images/silhouettes/26_kyouto.png", "mapHighlight": "map/highlight/26_kyouto.png" },
-    { "id": 27, "code": "27", "kanji": "大阪府", "kana": "おおさかふ", "romaji": "osaka", "svgId": "Osaka", "regionId": "5", "regionLabel": "近畿", "silhouette": "images/silhouettes/27_osaka.png", "mapHighlight": "map/highlight/27_osaka.png" },
-    { "id": 28, "code": "28", "kanji": "兵庫県", "kana": "ひょうごけん", "romaji": "hyougo", "svgId": "Hyogo", "regionId": "5", "regionLabel": "近畿", "silhouette": "images/silhouettes/28_hyougo.png", "mapHighlight": "map/highlight/28_hyougo.png" },
-
-    { "id": 29, "code": "29", "kanji": "奈良県", "kana": "ならけん", "romaji": "nara", "svgId": "Nara", "regionId": "5", "regionLabel": "近畿", "silhouette": "images/silhouettes/29_nara.png", "mapHighlight": "map/highlight/29_nara.png" },
-    { "id": 30, "code": "30", "kanji": "和歌山県", "kana": "わかやまけん", "romaji": "wakayama", "svgId": "Wakayama", "regionId": "5", "regionLabel": "近畿", "silhouette": "images/silhouettes/30_wakayama.png", "mapHighlight": "map/highlight/30_wakayama.png" },
-
-    { "id": 31, "code": "31", "kanji": "鳥取県", "kana": "とっとりけん", "romaji": "tottori", "svgId": "Tottori", "regionId": "6", "regionLabel": "中国", "silhouette": "images/silhouettes/31_tottori.png", "mapHighlight": "map/highlight/31_tottori.png" },
-    { "id": 32, "code": "32", "kanji": "島根県", "kana": "しまねけん", "romaji": "shimane", "svgId": "Shimane", "regionId": "6", "regionLabel": "中国", "silhouette": "images/silhouettes/32_shimane.png", "mapHighlight": "map/highlight/32_shimane.png" },
-    { "id": 33, "code": "33", "kanji": "岡山県", "kana": "おかやまけん", "romaji": "okayama", "svgId": "Okayama", "regionId": "6", "regionLabel": "中国", "silhouette": "images/silhouettes/33_okayama.png", "mapHighlight": "map/highlight/33_okayama.png" },
-    { "id": 34, "code": "34", "kanji": "広島県", "kana": "ひろしまけん", "romaji": "hiroshima", "svgId": "Hiroshima", "regionId": "6", "regionLabel": "中国", "silhouette": "images/silhouettes/34_hiroshima.png", "mapHighlight": "map/highlight/34_hiroshima.png" },
-    { "id": 35, "code": "35", "kanji": "山口県", "kana": "やまぐちけん", "romaji": "yamaguchi", "svgId": "Yamaguchi", "regionId": "6", "regionLabel": "中国", "silhouette": "images/silhouettes/35_yamaguchi.png", "mapHighlight": "map/highlight/35_yamaguchi.png" },
-
-    { "id": 36, "code": "36", "kanji": "徳島県", "kana": "とくしまけん", "romaji": "tokushima", "svgId": "Tokushima", "regionId": "7", "regionLabel": "四国", "silhouette": "images/silhouettes/36_tokushima.png", "mapHighlight": "map/highlight/36_tokushima.png" },
-    { "id": 37, "code": "37", "kanji": "香川県", "kana": "かがわけん", "romaji": "kagawa", "svgId": "Kagawa", "regionId": "7", "regionLabel": "四国", "silhouette": "images/silhouettes/37_kagawa.png", "mapHighlight": "map/highlight/37_kagawa.png" },
-    { "id": 38, "code": "38", "kanji": "愛媛県", "kana": "えひめけん", "romaji": "ehime", "svgId": "Ehime", "regionId": "7", "regionLabel": "四国", "silhouette": "images/silhouettes/38_ehime.png", "mapHighlight": "map/highlight/38_ehime.png" },
-    { "id": 39, "code": "39", "kanji": "高知県", "kana": "こうちけん", "romaji": "kouchi", "svgId": "Kochi", "regionId": "7", "regionLabel": "四国", "silhouette": "images/silhouettes/39_kouchi.png", "mapHighlight": "map/highlight/39_kouchi.png" },
-
-    { "id": 40, "code": "40", "kanji": "福岡県", "kana": "ふくおかけん", "romaji": "fukuoka", "svgId": "Fukuoka", "regionId": "8", "regionLabel": "九州", "silhouette": "images/silhouettes/40_fukuoka.png", "mapHighlight": "map/highlight/40_fukuoka.png" },
-    { "id": 41, "code": "41", "kanji": "佐賀県", "kana": "さがけん", "romaji": "saga", "svgId": "Saga", "regionId": "8", "regionLabel": "九州", "silhouette": "images/silhouettes/41_saga.png", "mapHighlight": "map/highlight/41_saga.png" },
-    { "id": 42, "code": "42", "kanji": "長崎県", "kana": "ながさきけん", "romaji": "nagasaki", "svgId": "Nagasaki", "regionId": "8", "regionLabel": "九州", "silhouette": "images/silhouettes/42_nagasaki.png", "mapHighlight": "map/highlight/42_nagasaki.png" },
-    { "id": 43, "code": "43", "kanji": "熊本県", "kana": "くまもとけん", "romaji": "kumamoto", "svgId": "Kumamoto", "regionId": "8", "regionLabel": "九州", "silhouette": "images/silhouettes/43_kumamoto.png", "mapHighlight": "map/highlight/43_kumamoto.png" },
-    { "id": 44, "code": "44", "kanji": "大分県", "kana": "おおいたけん", "romaji": "ooita", "svgId": "Oita", "regionId": "8", "regionLabel": "九州", "silhouette": "images/silhouettes/44_ooita.png", "mapHighlight": "map/highlight/44_ooita.png" },
-    { "id": 45, "code": "45", "kanji": "宮崎県", "kana": "みやざきけん", "romaji": "miyazaki", "svgId": "Miyazaki", "regionId": "8", "regionLabel": "九州", "silhouette": "images/silhouettes/45_miyazaki.png", "mapHighlight": "map/highlight/45_miyazaki.png" },
-    { "id": 46, "code": "46", "kanji": "鹿児島県", "kana": "かごしまけん", "romaji": "kagoshima", "svgId": "Kagoshima", "regionId": "8", "regionLabel": "九州", "silhouette": "images/silhouettes/46_kagoshima.png", "mapHighlight": "map/highlight/46_kagoshima.png" },
-    { "id": 47, "code": "47", "kanji": "沖縄県", "kana": "おきなわけん", "romaji": "okinawa", "svgId": "Okinawa", "regionId": "8", "regionLabel": "九州", "silhouette": "images/silhouettes/47_okinawa.png", "mapHighlight": "map/highlight/47_okinawa.png" }
+    { "id": 2, "code": "02", "kanji": "青森県", "kana": "あおもりけん", "romaji": "aomori", "svgId": "Aomori", "regionId": "2", "regionLabel": "東北", "silhouette": "images/silhouettes/2_touhoku1__aomori.png" },
+    { "id": 3, "code": "03", "kanji": "岩手県", "kana": "いわてけん", "romaji": "iwate", "svgId": "Iwate", "regionId": "2", "regionLabel": "東北", "silhouette": "images/silhouettes/2_touhoku2__iwate.png" },
+    { "id": 4, "code": "04", "kanji": "宮城県", "kana": "みやぎけん", "romaji": "miyagi", "svgId": "Miyagi", "regionId": "2", "regionLabel": "東北", "silhouette": "images/silhouettes/2_touhoku3__miyagi.png" },
+    { "id": 5, "code": "05", "kanji": "秋田県", "kana": "あきたけん", "romaji": "akita", "svgId": "Akita", "regionId": "2", "regionLabel": "東北", "silhouette": "images/silhouettes/2_touhoku4__akita.png" },
+    { "id": 6, "code": "06", "kanji": "山形県", "kana": "やまがたけん", "romaji": "yamagata", "svgId": "Yamagata", "regionId": "2", "regionLabel": "東北", "silhouette": "images/silhouettes/2_touhoku5__yamagata.png" },
+    { "id": 7, "code": "07", "kanji": "福島県", "kana": "ふくしまけん", "romaji": "fukushima", "svgId": "Fukushima", "regionId": "2", "regionLabel": "東北", "silhouette": "images/silhouettes/2_touhoku6__fukushima.png" }
   ]
 }
