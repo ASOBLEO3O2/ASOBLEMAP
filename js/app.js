@@ -1,11 +1,17 @@
 // ASOBLE 都道府県シルエットクイズ (v0.3)
-// 演出追加：問題バーン → 上固定 → 選択肢表示
+// - 問題文：かな
+// - 選択肢：4枚シルエット（毎回ランダム配置）
+// - 地方バランス（偏り防止）あり
+// - 不正解：おしい！それは〇〇県だよ！＋正解カードを赤枠点滅
+// - 正解：正解カードを赤枠点滅 → 「〇〇県はココだよ！」→ 地図ハイライト点滅（素材があれば）
+// - 追加演出：問題バーン → 上に残る → 4択を順に表示
 
 const $ = (sel) => document.querySelector(sel);
 
 const els = {
   badge: $("#badge"),
 
+  // drawer
   drawer: $("#drawer"),
   drawerBackdrop: $("#drawerBackdrop"),
   btnOpenDrawer: $("#btnOpenDrawer"),
@@ -13,14 +19,17 @@ const els = {
   optHint: $("#optHint"),
   optSound: $("#optSound"),
 
+  // screens
   screenTitle: $("#screenTitle"),
   screenGame: $("#screenGame"),
   btnStart: $("#btnStart"),
 
+  // game UI
   qText: $("#qText"),
   btnHint: $("#btnHint"),
   grid: $("#grid"),
 
+  // result overlay
   result: $("#result"),
   resLine1: $("#resLine1"),
   resName: $("#resName"),
@@ -28,23 +37,19 @@ const els = {
   resLine2: $("#resLine2"),
   btnNext: $("#btnNext"),
 
+  // map highlight img (optional)
   mapHi: $("#mapHi"),
 };
 
 let PREFS = [];
-let PREFS_BY_REGION = new Map();
-let lastRegions = [];
+let PREFS_BY_REGION = new Map(); // regionId -> prefs[]
+let lastRegions = []; // recent regions
 let lastPrefId = null;
 
-let current = null;
+let current = null; // { correct, choices, locked, token }
+let questionToken = 0;
 
-/* ========= util ========= */
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/* ========= UI ========= */
+/* ========= UI helpers ========= */
 
 function setBadge(text) {
   els.badge.textContent = text;
@@ -52,10 +57,12 @@ function setBadge(text) {
 
 function openDrawer() {
   els.drawer.classList.add("open");
+  els.drawer.setAttribute("aria-hidden", "false");
   els.drawerBackdrop.hidden = false;
 }
 function closeDrawer() {
   els.drawer.classList.remove("open");
+  els.drawer.setAttribute("aria-hidden", "true");
   els.drawerBackdrop.hidden = true;
 }
 
@@ -66,11 +73,43 @@ els.drawerBackdrop?.addEventListener("click", closeDrawer);
 function showScreen(name) {
   if (name === "title") {
     els.screenTitle.hidden = false;
+    els.screenTitle.classList.add("screenActive");
     els.screenGame.hidden = true;
+    els.screenGame.classList.remove("screenActive");
   } else {
     els.screenTitle.hidden = true;
+    els.screenTitle.classList.remove("screenActive");
     els.screenGame.hidden = false;
+    els.screenGame.classList.add("screenActive");
   }
+}
+
+/* ========= util ========= */
+
+function sleep(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function ensureQuestionHero() {
+  let hero = $("#qHero");
+  if (!hero) {
+    hero = document.createElement("div");
+    hero.id = "qHero";
+    hero.className = "qHero";
+    els.screenGame.appendChild(hero);
+  }
+  return hero;
+}
+
+function clearQuestionHero() {
+  const hero = $("#qHero");
+  if (!hero) return;
+  hero.classList.remove("show", "hide");
+  hero.textContent = "";
+}
+
+function resetQuestionArea() {
+  els.qText.textContent = "";
 }
 
 /* ========= Data ========= */
@@ -79,7 +118,16 @@ async function loadPrefs() {
   const res = await fetch("data/prefs.json", { cache: "no-store" });
   const json = await res.json();
 
+  // assetがあるものだけ出題
   PREFS = (json.prefs || []).filter((p) => p.silhouette);
+
+  const missing = json.missing || [];
+  if (missing.length) {
+    console.warn("missing assets:", missing);
+    setBadge(`素材不足: ${missing.map((m) => m[2]).join("、")}`);
+  } else {
+    setBadge("素材OK");
+  }
 
   PREFS_BY_REGION = new Map();
   for (const p of PREFS) {
@@ -91,12 +139,19 @@ async function loadPrefs() {
 
 function pickRegionBalanced() {
   const regions = [...PREFS_BY_REGION.keys()];
+
+  // Avoid last 2 regions if possible
   const avoid = new Set(lastRegions.slice(-2));
   let candidates = regions.filter((r) => !avoid.has(r));
   if (candidates.length === 0) candidates = regions;
 
-  const r = candidates[Math.floor(Math.random() * candidates.length)];
-  return r;
+  // Weight: prefer regions with fewer recent appearances
+  const recentCount = (rid) => lastRegions.filter((x) => x === rid).length;
+  candidates.sort((a, b) => recentCount(a) - recentCount(b));
+
+  const bestScore = recentCount(candidates[0]);
+  const best = candidates.filter((r) => recentCount(r) === bestScore);
+  return best[Math.floor(Math.random() * best.length)];
 }
 
 function pickCorrectPref() {
@@ -104,104 +159,244 @@ function pickCorrectPref() {
   const list = PREFS_BY_REGION.get(rid) || [];
   if (!list.length) return null;
 
-  const p = list[Math.floor(Math.random() * list.length)];
+  // avoid exact same pref as last time if possible
+  let pool = list;
+  if (lastPrefId != null && list.length > 1) {
+    pool = list.filter((p) => p.id !== lastPrefId);
+    if (!pool.length) pool = list;
+  }
+
+  const p = pool[Math.floor(Math.random() * pool.length)];
+
   lastRegions.push(String(rid));
+  if (lastRegions.length > 18) lastRegions = lastRegions.slice(-18);
+  lastPrefId = p.id;
+
   return p;
 }
 
 function shuffle(arr) {
-  return arr.sort(() => Math.random() - 0.5);
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 function buildChoices(correct) {
-  const wrongs = shuffle(PREFS).filter(p => p.id !== correct.id).slice(0,3);
+  const wrongs = [];
+  const used = new Set([correct.id]);
+
+  // try to diversify regions a bit
+  const regionIds = [...PREFS_BY_REGION.keys()].filter(
+    (r) => r !== String(correct.regionId)
+  );
+  const regionOrder = shuffle(regionIds);
+
+  for (const rid of regionOrder) {
+    const list = PREFS_BY_REGION.get(rid) || [];
+    const cands = shuffle(list).filter((p) => !used.has(p.id));
+    if (cands[0]) {
+      wrongs.push(cands[0]);
+      used.add(cands[0].id);
+    }
+    if (wrongs.length >= 3) break;
+  }
+
+  // fallback
+  if (wrongs.length < 3) {
+    for (const p of shuffle(PREFS)) {
+      if (wrongs.length >= 3) break;
+      if (!used.has(p.id)) {
+        wrongs.push(p);
+        used.add(p.id);
+      }
+    }
+  }
+
   return shuffle([correct, ...wrongs]);
 }
 
-/* ========= 演出付き出題 ========= */
+/* ========= Map highlight (optional assets) ========= */
 
-async function renderQuestionWithIntro() {
-  hideResult();
-  clearMapHighlight();
-
-  const correct = pickCorrectPref();
-  if (!correct) return;
-
-  const choices = buildChoices(correct);
-  current = { correct, choices, locked: false };
-
-  const text = `このシルエットから\n${correct.kana} をえらんでね！`;
-
-  // 中央演出
-  let hero = document.querySelector(".qHero");
-  if (!hero) {
-    hero = document.createElement("div");
-    hero.className = "qHero";
-    document.getElementById("screenGame").appendChild(hero);
-  }
-
-  hero.textContent = text;
-  hero.classList.remove("hide");
-  hero.classList.add("show");
-
-  await sleep(1000);
-
-  hero.classList.remove("show");
-  hero.classList.add("hide");
-
-  // 上に表示
-  els.qText.textContent = text;
-
-  await sleep(200);
-
-  // 選択肢表示
-  els.grid.innerHTML = "";
-
-  for (const p of choices) {
-    const btn = document.createElement("button");
-    btn.className = "choice";
-    btn.dataset.prefId = p.id;
-
-    const img = document.createElement("img");
-    img.src = p.silhouette;
-    btn.appendChild(img);
-
-    btn.addEventListener("click", () => onPick(p.id, btn));
-    els.grid.appendChild(btn);
-  }
-
-  const items = els.grid.querySelectorAll(".choice");
-  for (let i = 0; i < items.length; i++) {
-    await sleep(80);
-    items[i].classList.add("show");
-  }
+function clearMapHighlight() {
+  els.mapHi.classList.remove("blink");
+  els.mapHi.style.opacity = "0";
+  els.mapHi.removeAttribute("src");
 }
 
-/* ========= 既存 ========= */
+function startMapBlink(pref) {
+  const url = pref?.mapHighlight;
+  if (!url) return;
+
+  els.mapHi.onload = () => {
+    els.mapHi.style.opacity = "1";
+    els.mapHi.classList.remove("blink");
+    void els.mapHi.offsetWidth;
+    els.mapHi.classList.add("blink");
+  };
+  els.mapHi.onerror = () => {
+    console.warn("map highlight not found:", url);
+  };
+  els.mapHi.src = url;
+}
+
+/* ========= Result UI ========= */
 
 function hideResult() {
   els.result.hidden = true;
 }
 
-function clearMapHighlight() {
-  els.mapHi.style.opacity = "0";
-}
-
-function onPick(id, el) {
-  if (current.locked) return;
-  current.locked = true;
-
-  const correct = current.correct;
-  const isCorrect = id === correct.id;
+function showResult({ correct, picked, isCorrect }) {
+  els.result.hidden = false;
 
   if (isCorrect) {
     els.resLine1.textContent = "✨せいかい！✨";
   } else {
-    els.resLine1.textContent = "おしい！";
+    els.resLine1.textContent = `おしい！それは ${picked.kanji} だよ！`;
   }
 
   els.resName.textContent = correct.kanji;
-  els.result.hidden = false;
+  els.resKana.textContent = `（${correct.kana}）`;
+  els.resLine2.textContent = "";
+
+  window.setTimeout(() => {
+    els.resLine2.textContent = `${correct.kanji} はココだよ！`;
+    startMapBlink(correct);
+  }, 600);
+}
+
+/* ========= Question render ========= */
+
+function buildQuestionText(correct) {
+  return `このシルエットから\n${correct.kana} をえらんでね！`;
+}
+
+function resetChoiceClasses() {
+  els.grid.querySelectorAll(".choice").forEach((c) => {
+    c.classList.remove("picked", "correct", "correctHold", "show");
+  });
+}
+
+function addCorrectBlink(el) {
+  el.classList.add("correct");
+  window.setTimeout(() => {
+    el.classList.add("correctHold");
+  }, 0.6 * 3 * 1000 + 50);
+}
+
+function renderChoicesOnly(choices) {
+  els.grid.innerHTML = "";
+
+  for (const p of choices) {
+    const btn = document.createElement("button");
+    btn.className = "choice";
+    btn.type = "button";
+    btn.dataset.prefId = String(p.id);
+    btn.setAttribute("aria-label", "えらぶ");
+
+    const img = document.createElement("img");
+    img.src = p.silhouette;
+    img.alt = "";
+    btn.appendChild(img);
+
+    btn.addEventListener("click", () => onPick(p.id, btn));
+    els.grid.appendChild(btn);
+  }
+}
+
+async function animateChoicesIn(token) {
+  const items = els.grid.querySelectorAll(".choice");
+  for (let i = 0; i < items.length; i++) {
+    if (!current || current.token !== token) return;
+    await sleep(90);
+    if (!current || current.token !== token) return;
+    items[i].classList.add("show");
+  }
+}
+
+async function renderQuestionWithIntro() {
+  const token = ++questionToken;
+
+  hideResult();
+  clearMapHighlight();
+  clearQuestionHero();
+  resetQuestionArea();
+  els.grid.innerHTML = "";
+
+  const correct = pickCorrectPref();
+  if (!correct) {
+    setBadge("データがありません");
+    return;
+  }
+
+  const choices = buildChoices(correct);
+  current = { correct, choices, locked: true, token };
+
+  const questionText = buildQuestionText(correct);
+
+  // Hint button
+  const hintOn = !!els.optHint.checked;
+  els.btnHint.hidden = !hintOn;
+  els.btnHint.onclick = () => {
+    alert(`ヒント：${correct.regionLabel} だよ！`);
+  };
+
+  // 中央バーン表示
+  const hero = ensureQuestionHero();
+  hero.textContent = questionText;
+  hero.classList.remove("hide");
+  void hero.offsetWidth;
+  hero.classList.add("show");
+
+  await sleep(1050);
+  if (!current || current.token !== token) return;
+
+  hero.classList.remove("show");
+  hero.classList.add("hide");
+
+  // 上に問題を残す
+  els.qText.textContent = questionText;
+
+  await sleep(220);
+  if (!current || current.token !== token) return;
+
+  // 4択表示
+  renderChoicesOnly(choices);
+
+  current.locked = false;
+
+  await animateChoicesIn(token);
+
+  if (!current || current.token !== token) return;
+  hero.classList.remove("show", "hide");
+  hero.textContent = "";
+}
+
+/* ========= Pick ========= */
+
+function onPick(pickedId, pickedBtnEl) {
+  if (!current || current.locked) return;
+  current.locked = true;
+
+  const correct = current.correct;
+  const picked = current.choices.find((p) => p.id === pickedId) || null;
+  if (!picked) {
+    current.locked = false;
+    return;
+  }
+
+  const isCorrect = pickedId === correct.id;
+
+  resetChoiceClasses();
+
+  pickedBtnEl.classList.add("picked");
+
+  const correctEl = els.grid.querySelector(`[data-pref-id="${correct.id}"]`);
+  if (correctEl) addCorrectBlink(correctEl);
+
+  showResult({ correct, picked, isCorrect });
 }
 
 /* ========= Events ========= */
@@ -210,14 +405,24 @@ els.btnNext.addEventListener("click", () => {
   renderQuestionWithIntro();
 });
 
-els.btnStart.addEventListener("click", () => {
+els.btnStart.addEventListener("click", async () => {
   showScreen("game");
   renderQuestionWithIntro();
 });
 
+els.optHint?.addEventListener("change", () => {
+  if (!current) return;
+  els.btnHint.hidden = !els.optHint.checked;
+});
+
 /* ========= Boot ========= */
 
-(async function () {
+(async function main() {
   showScreen("title");
+  closeDrawer();
+  setBadge("loading...");
   await loadPrefs();
+  setBadge("ready");
+  hideResult();
+  clearMapHighlight();
 })();
