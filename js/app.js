@@ -1,4 +1,4 @@
-// ASOBLE 都道府県シルエットクイズ (v0.5)
+// ASOBLE 都道府県シルエットクイズ (v0.6)
 // - 問題文：かな
 // - 選択肢：4枚シルエット（毎回ランダム配置）
 // - 地方バランス（偏り防止）あり
@@ -51,7 +51,6 @@ let current = null; // { correct, choices, locked, token }
 let questionToken = 0;
 
 let svgDoc = null;
-let svgRoot = null;
 let currentMapTarget = null;
 let mapReady = false;
 
@@ -236,8 +235,7 @@ function initJapanSvg() {
   const bindSvg = () => {
     try {
       svgDoc = els.japanMap.contentDocument || null;
-      svgRoot = svgDoc?.documentElement || null;
-      mapReady = !!svgRoot;
+      mapReady = !!svgDoc;
       if (mapReady) {
         setBadge("map ready");
       } else {
@@ -246,7 +244,6 @@ function initJapanSvg() {
     } catch (err) {
       console.warn("failed to access SVG map:", err);
       svgDoc = null;
-      svgRoot = null;
       mapReady = false;
     }
   };
@@ -265,6 +262,15 @@ function clearMapHighlight() {
     currentMapTarget.style.stroke = "";
     currentMapTarget.style.strokeWidth = "";
     currentMapTarget.style.filter = "";
+
+    const paths = currentMapTarget.querySelectorAll("path");
+    paths.forEach((path) => {
+      path.style.fill = "";
+      path.style.stroke = "";
+      path.style.strokeWidth = "";
+      path.style.filter = "";
+    });
+
     currentMapTarget = null;
   }
 
@@ -283,16 +289,10 @@ function ensureSvgBlinkStyle() {
   style.textContent = `
     .pref-blink {
       animation: prefBlink 0.6s ease 4;
-      transform-box: fill-box;
-      transform-origin: center;
     }
     @keyframes prefBlink {
-      0%, 100% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.25;
-      }
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.25; }
     }
   `;
   svgDoc.documentElement.appendChild(style);
@@ -321,7 +321,7 @@ function startMapBlink(pref) {
   clearMapHighlight();
   ensureSvgBlinkStyle();
 
-  const target = svgDoc.getElementById(pref.code);
+  const target = svgDoc.querySelector(`g[id="${pref.code}"]`);
 
   if (!target) {
     console.warn("見つからない:", pref.code);
@@ -331,13 +331,22 @@ function startMapBlink(pref) {
   currentMapTarget = target;
   showMap();
 
-  target.style.fill = "#ff4f4f";
-  target.style.stroke = "#ffffff";
-  target.style.strokeWidth = "1.5";
-  target.style.filter = "drop-shadow(0 0 6px rgba(255,79,79,0.7))";
-
-  void target.getBBox();
   target.classList.add("pref-blink");
+
+  const paths = target.querySelectorAll("path");
+  if (paths.length) {
+    paths.forEach((path) => {
+      path.style.fill = "#ff4f4f";
+      path.style.stroke = "#ffffff";
+      path.style.strokeWidth = "1.5";
+      path.style.filter = "drop-shadow(0 0 6px rgba(255,79,79,0.7))";
+    });
+  } else {
+    target.style.fill = "#ff4f4f";
+    target.style.stroke = "#ffffff";
+    target.style.strokeWidth = "1.5";
+    target.style.filter = "drop-shadow(0 0 6px rgba(255,79,79,0.7))";
+  }
 }
 
 /* ========= Result UI ========= */
