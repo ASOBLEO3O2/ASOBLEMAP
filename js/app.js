@@ -361,10 +361,10 @@ function onPick(pickedId, pickedBtnEl) {
   const correctEl = els.grid?.querySelector(`[data-pref-id="${correct.id}"]`);
 
   if (isCorrect) {
-    if (pickedBtnEl) addCorrectBlink(pickedBtnEl);
+    addCorrectBlink(pickedBtnEl);
   } else {
     pickedBtnEl?.classList.add("picked");
-    if (correctEl) addCorrectBlink(correctEl);
+    addCorrectBlink(correctEl);
   }
 
   setResultTexts({ correct, picked, isCorrect });
@@ -383,6 +383,7 @@ function initJapanSvg() {
       mapReady = !!svgDoc && !!svgRoot;
       if (mapReady) {
         defaultViewBox = svgRoot.getAttribute("viewBox") || "";
+        ensureSvgBlinkStyle();
         setBadge("map ready");
       }
     } catch (err) {
@@ -412,6 +413,9 @@ async function waitForSvgReady(timeoutMs = 4000) {
         if (mapReady && !defaultViewBox) {
           defaultViewBox = svgRoot.getAttribute("viewBox") || "";
         }
+        if (mapReady) {
+          ensureSvgBlinkStyle();
+        }
         return mapReady;
       }
     } catch (err) {
@@ -431,11 +435,16 @@ function ensureSvgBlinkStyle() {
   style.setAttribute("id", "quiz-map-style");
   style.textContent = `
     .quiz-outline-blink {
-      animation: quizOutlineBlink 0.62s ease 4;
+      animation: quizOutlineBlink 0.52s ease 5;
     }
+
     @keyframes quizOutlineBlink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.35; }
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.72;
+      }
     }
   `;
   svgDoc.documentElement.appendChild(style);
@@ -473,7 +482,6 @@ function getFilledNodes(target) {
 
     if (fillAttr && fillAttr !== "none") return true;
     if (styleFill && styleFill !== "none") return true;
-
     return false;
   });
 
@@ -487,17 +495,14 @@ function getFilledNodes(target) {
 
 function applyOutlineToTarget(target) {
   const nodes = getFilledNodes(target);
-
-  if (!nodes.length) {
-    return [];
-  }
+  if (!nodes.length) return [];
 
   nodes.forEach((node) => {
-    node.style.stroke = "#ff4f4f";
-    node.style.strokeWidth = "5";
+    node.style.stroke = "#ff2a2a";
+    node.style.strokeWidth = "8";
     node.style.strokeLinejoin = "round";
     node.style.paintOrder = "stroke fill";
-    node.style.filter = "drop-shadow(0 0 8px rgba(255,79,79,0.78))";
+    node.style.filter = "drop-shadow(0 0 10px rgba(255, 42, 42, 0.95)) drop-shadow(0 0 18px rgba(255, 42, 42, 0.70))";
     node.style.vectorEffect = "non-scaling-stroke";
   });
 
@@ -511,7 +516,7 @@ function zoomToTarget(target) {
     const bbox = target.getBBox();
     if (!bbox || !bbox.width || !bbox.height) return;
 
-    const pad = Math.max(bbox.width, bbox.height) * 1.8;
+    const pad = Math.max(bbox.width, bbox.height) * 1.15;
     const x = bbox.x - pad;
     const y = bbox.y - pad;
     const w = bbox.width + pad * 2;
@@ -548,7 +553,6 @@ async function startMapSequence(pref) {
 
   clearMapHighlight();
   resetMapView();
-  ensureSvgBlinkStyle();
 
   const target = svgDoc.querySelector(`g[id="${pref.code}"]`);
   if (!target) {
@@ -559,13 +563,13 @@ async function startMapSequence(pref) {
 
   currentMapTarget = target;
 
-  await sleep(450);
+  await sleep(300);
   if (!current || current.phase !== "map" || seq !== currentMapSeq) return;
 
   currentOutlinedNodes = applyOutlineToTarget(target);
   target.classList.add("quiz-outline-blink");
 
-  await sleep(700);
+  await sleep(650);
   if (!current || current.phase !== "map" || seq !== currentMapSeq) return;
 
   if (els.mapPrefName) {
@@ -582,7 +586,7 @@ async function startMapSequence(pref) {
     els.mapPrefKana.classList.add("show");
   }
 
-  await sleep(550);
+  await sleep(500);
   if (!current || current.phase !== "map" || seq !== currentMapSeq) return;
 
   zoomToTarget(target);
@@ -618,7 +622,7 @@ els.btnStart?.addEventListener("click", () => {
 });
 
 els.btnOpenDrawer?.addEventListener("click", () => {
-  // 今回は設定未使用
+  // 未使用
 });
 
 /* ========= Boot ========= */
