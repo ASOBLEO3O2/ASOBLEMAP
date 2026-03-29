@@ -18,12 +18,13 @@
     </header>
 
     <main class="main">
+
       <section id="screenTitle" class="screen screenActive">
         <h1 class="title">
           <span class="titleSmall">ASOBLE</span>
           <span class="titleBig">都道府県<br>シルエットクイズ</span>
         </h1>
-        <button id="btnStart" class="btnPrimary">はじめる</button>
+        <button id="btnStart" class="btnPrimary" type="button">はじめる</button>
       </section>
 
       <section id="screenGame" class="screen" hidden>
@@ -36,7 +37,6 @@
 
           <div id="grid" class="grid"></div>
 
-          <!-- 結果ポップアップ -->
           <div id="result" class="result" hidden>
             <div class="resultCard">
               <div id="resLine1" class="resLine1"></div>
@@ -47,7 +47,6 @@
             </div>
           </div>
 
-          <!-- 地図演出ステップ -->
           <div id="mapStage" class="mapStage" hidden>
             <div class="mapStageCard">
               <div id="mapLead" class="mapLead">ココだよ！</div>
@@ -63,6 +62,7 @@
               </div>
 
               <div id="mapPrefName" class="mapPrefName" hidden></div>
+              <div id="mapPrefKana" class="mapPrefKana" hidden></div>
 
               <button id="btnMapNext" class="btnPrimary small" type="button">
                 つぎのもんだいへ
@@ -71,11 +71,13 @@
           </div>
         </div>
       </section>
+
     </main>
 
     <footer class="footer">
       <span id="badge" class="badge">ready</span>
     </footer>
+
   </div>
 
   <script type="module" src="js/app.js"></script>
