@@ -1,9 +1,9 @@
-// ASOBLE 都道府県シルエットクイズ (v0.3)
+// ASOBLE 都道府県シルエットクイズ (v0.4)
 // - 問題文：かな
 // - 選択肢：4枚シルエット（毎回ランダム配置）
 // - 地方バランス（偏り防止）あり
 // - 不正解：おしい！それは〇〇県だよ！＋正解カードを赤枠点滅
-// - 正解：正解カードを赤枠点滅 → 「〇〇県はココだよ！」→ 地図ハイライト点滅（素材があれば）
+// - 正解：正解カードを赤枠点滅 → 「〇〇県はココだよ！」→ SVG地図ハイライト点滅
 // - 追加演出：問題バーン → 上に残る → 4択を順に表示
 
 const $ = (sel) => document.querySelector(sel);
@@ -37,33 +37,42 @@ const els = {
   resLine2: $("#resLine2"),
   btnNext: $("#btnNext"),
 
-  // map highlight img (optional)
-  mapHi: $("#mapHi"),
+  // SVG map
+  japanMap: $("#japanMap"),
+  mapWrap: $(".mapWrap"),
 };
 
 let PREFS = [];
-let PREFS_BY_REGION = new Map(); // regionId -> prefs[]
-let lastRegions = []; // recent regions
+let PREFS_BY_REGION = new Map();
+let lastRegions = [];
 let lastPrefId = null;
 
 let current = null; // { correct, choices, locked, token }
 let questionToken = 0;
 
+let svgDoc = null;
+let svgRoot = null;
+let currentMapTarget = null;
+let mapReady = false;
+
 /* ========= UI helpers ========= */
 
 function setBadge(text) {
-  els.badge.textContent = text;
+  if (els.badge) els.badge.textContent = text;
 }
 
 function openDrawer() {
+  if (!els.drawer) return;
   els.drawer.classList.add("open");
   els.drawer.setAttribute("aria-hidden", "false");
-  els.drawerBackdrop.hidden = false;
+  if (els.drawerBackdrop) els.drawerBackdrop.hidden = false;
 }
+
 function closeDrawer() {
+  if (!els.drawer) return;
   els.drawer.classList.remove("open");
   els.drawer.setAttribute("aria-hidden", "true");
-  els.drawerBackdrop.hidden = true;
+  if (els.drawerBackdrop) els.drawerBackdrop.hidden = true;
 }
 
 els.btnOpenDrawer?.addEventListener("click", openDrawer);
@@ -72,15 +81,23 @@ els.drawerBackdrop?.addEventListener("click", closeDrawer);
 
 function showScreen(name) {
   if (name === "title") {
-    els.screenTitle.hidden = false;
-    els.screenTitle.classList.add("screenActive");
-    els.screenGame.hidden = true;
-    els.screenGame.classList.remove("screenActive");
+    if (els.screenTitle) {
+      els.screenTitle.hidden = false;
+      els.screenTitle.classList.add("screenActive");
+    }
+    if (els.screenGame) {
+      els.screenGame.hidden = true;
+      els.screenGame.classList.remove("screenActive");
+    }
   } else {
-    els.screenTitle.hidden = true;
-    els.screenTitle.classList.remove("screenActive");
-    els.screenGame.hidden = false;
-    els.screenGame.classList.add("screenActive");
+    if (els.screenTitle) {
+      els.screenTitle.hidden = true;
+      els.screenTitle.classList.remove("screenActive");
+    }
+    if (els.screenGame) {
+      els.screenGame.hidden = false;
+      els.screenGame.classList.add("screenActive");
+    }
   }
 }
 
@@ -109,7 +126,7 @@ function clearQuestionHero() {
 }
 
 function resetQuestionArea() {
-  els.qText.textContent = "";
+  if (els.qText) els.qText.textContent = "";
 }
 
 /* ========= Data ========= */
@@ -118,7 +135,6 @@ async function loadPrefs() {
   const res = await fetch("data/prefs.json", { cache: "no-store" });
   const json = await res.json();
 
-  // assetがあるものだけ出題
   PREFS = (json.prefs || []).filter((p) => p.silhouette);
 
   const missing = json.missing || [];
@@ -139,13 +155,10 @@ async function loadPrefs() {
 
 function pickRegionBalanced() {
   const regions = [...PREFS_BY_REGION.keys()];
-
-  // Avoid last 2 regions if possible
   const avoid = new Set(lastRegions.slice(-2));
   let candidates = regions.filter((r) => !avoid.has(r));
   if (candidates.length === 0) candidates = regions;
 
-  // Weight: prefer regions with fewer recent appearances
   const recentCount = (rid) => lastRegions.filter((x) => x === rid).length;
   candidates.sort((a, b) => recentCount(a) - recentCount(b));
 
@@ -159,7 +172,6 @@ function pickCorrectPref() {
   const list = PREFS_BY_REGION.get(rid) || [];
   if (!list.length) return null;
 
-  // avoid exact same pref as last time if possible
   let pool = list;
   if (lastPrefId != null && list.length > 1) {
     pool = list.filter((p) => p.id !== lastPrefId);
@@ -188,7 +200,6 @@ function buildChoices(correct) {
   const wrongs = [];
   const used = new Set([correct.id]);
 
-  // try to diversify regions a bit
   const regionIds = [...PREFS_BY_REGION.keys()].filter(
     (r) => r !== String(correct.regionId)
   );
@@ -204,7 +215,6 @@ function buildChoices(correct) {
     if (wrongs.length >= 3) break;
   }
 
-  // fallback
   if (wrongs.length < 3) {
     for (const p of shuffle(PREFS)) {
       if (wrongs.length >= 3) break;
@@ -218,51 +228,164 @@ function buildChoices(correct) {
   return shuffle([correct, ...wrongs]);
 }
 
-/* ========= Map highlight (optional assets) ========= */
+/* ========= SVG Map ========= */
+
+function initJapanSvg() {
+  if (!els.japanMap) return;
+
+  const bindSvg = () => {
+    try {
+      svgDoc = els.japanMap.contentDocument || null;
+      svgRoot = svgDoc?.documentElement || null;
+      mapReady = !!svgRoot;
+      if (mapReady) {
+        setBadge("map ready");
+      } else {
+        console.warn("SVG map not ready");
+      }
+    } catch (err) {
+      console.warn("failed to access SVG map:", err);
+      svgDoc = null;
+      svgRoot = null;
+      mapReady = false;
+    }
+  };
+
+  els.japanMap.addEventListener("load", bindSvg);
+
+  if (els.japanMap.contentDocument) {
+    bindSvg();
+  }
+}
+
+function getMapTarget(pref) {
+  if (!svgDoc || !pref) return null;
+
+  const candidates = [
+    pref.mapId,
+    pref.svgId,
+    pref.prefCode,
+    pref.id,
+  ]
+    .filter((v) => v !== undefined && v !== null && String(v).trim() !== "")
+    .map((v) => String(v));
+
+  for (const key of candidates) {
+    let el = svgDoc.getElementById(key);
+    if (el) return el;
+
+    el = svgDoc.querySelector(`[id="${CSS.escape(key)}"]`);
+    if (el) return el;
+
+    el = svgDoc.querySelector(`[name="${CSS.escape(key)}"]`);
+    if (el) return el;
+  }
+
+  return null;
+}
 
 function clearMapHighlight() {
-  els.mapHi.classList.remove("blink");
-  els.mapHi.style.opacity = "0";
-  els.mapHi.removeAttribute("src");
+  if (currentMapTarget) {
+    currentMapTarget.classList.remove("pref-blink");
+    currentMapTarget.style.fill = "";
+    currentMapTarget.style.stroke = "";
+    currentMapTarget.style.strokeWidth = "";
+    currentMapTarget.style.filter = "";
+    currentMapTarget = null;
+  }
+
+  if (svgDoc) {
+    const styleEl = svgDoc.getElementById("quiz-map-style");
+    if (styleEl) styleEl.remove();
+  }
+}
+
+function ensureSvgBlinkStyle() {
+  if (!svgDoc) return;
+  if (svgDoc.getElementById("quiz-map-style")) return;
+
+  const style = svgDoc.createElementNS("http://www.w3.org/2000/svg", "style");
+  style.setAttribute("id", "quiz-map-style");
+  style.textContent = `
+    .pref-blink {
+      animation: prefBlink 0.6s ease 4;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+    @keyframes prefBlink {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.25;
+      }
+    }
+  `;
+  svgDoc.documentElement.appendChild(style);
+}
+
+function showMap() {
+  if (els.mapWrap) {
+    els.mapWrap.style.display = "flex";
+    els.mapWrap.style.opacity = "1";
+  }
+}
+
+function hideMap() {
+  if (els.mapWrap) {
+    els.mapWrap.style.opacity = "0";
+  }
+  clearMapHighlight();
 }
 
 function startMapBlink(pref) {
-  const url = pref?.mapHighlight;
-  if (!url) return;
+  if (!mapReady || !svgDoc) {
+    console.warn("SVG map is not ready yet");
+    return;
+  }
 
-  els.mapHi.onload = () => {
-    els.mapHi.style.opacity = "1";
-    els.mapHi.classList.remove("blink");
-    void els.mapHi.offsetWidth;
-    els.mapHi.classList.add("blink");
-  };
-  els.mapHi.onerror = () => {
-    console.warn("map highlight not found:", url);
-  };
-  els.mapHi.src = url;
+  clearMapHighlight();
+  ensureSvgBlinkStyle();
+
+  const target = getMapTarget(pref);
+  if (!target) {
+    console.warn("prefecture shape not found in SVG:", pref);
+    return;
+  }
+
+  currentMapTarget = target;
+  showMap();
+
+  target.style.fill = "#ff6b6b";
+  target.style.stroke = "#ffffff";
+  target.style.strokeWidth = "1.5";
+  target.style.filter = "drop-shadow(0 0 6px rgba(255,107,107,0.7))";
+
+  void target.getBBox();
+  target.classList.add("pref-blink");
 }
 
 /* ========= Result UI ========= */
 
 function hideResult() {
-  els.result.hidden = true;
+  if (els.result) els.result.hidden = true;
 }
 
 function showResult({ correct, picked, isCorrect }) {
-  els.result.hidden = false;
+  if (els.result) els.result.hidden = false;
 
-  if (isCorrect) {
-    els.resLine1.textContent = "✨せいかい！✨";
-  } else {
-    els.resLine1.textContent = `おしい！それは ${picked.kanji} だよ！`;
+  if (els.resLine1) {
+    els.resLine1.textContent = isCorrect
+      ? "✨せいかい！✨"
+      : `おしい！それは ${picked.kanji} だよ！`;
   }
 
-  els.resName.textContent = correct.kanji;
-  els.resKana.textContent = `（${correct.kana}）`;
-  els.resLine2.textContent = "";
+  if (els.resName) els.resName.textContent = correct.kanji;
+  if (els.resKana) els.resKana.textContent = `（${correct.kana}）`;
+  if (els.resLine2) els.resLine2.textContent = "";
 
   window.setTimeout(() => {
-    els.resLine2.textContent = `${correct.kanji} はココだよ！`;
+    if (els.resLine2) els.resLine2.textContent = `${correct.kanji} はココだよ！`;
     startMapBlink(correct);
   }, 600);
 }
@@ -274,7 +397,7 @@ function buildQuestionText(correct) {
 }
 
 function resetChoiceClasses() {
-  els.grid.querySelectorAll(".choice").forEach((c) => {
+  els.grid?.querySelectorAll(".choice").forEach((c) => {
     c.classList.remove("picked", "correct", "correctHold", "show");
   });
 }
@@ -287,6 +410,8 @@ function addCorrectBlink(el) {
 }
 
 function renderChoicesOnly(choices) {
+  if (!els.grid) return;
+
   els.grid.innerHTML = "";
 
   for (const p of choices) {
@@ -307,7 +432,7 @@ function renderChoicesOnly(choices) {
 }
 
 async function animateChoicesIn(token) {
-  const items = els.grid.querySelectorAll(".choice");
+  const items = els.grid?.querySelectorAll(".choice") || [];
   for (let i = 0; i < items.length; i++) {
     if (!current || current.token !== token) return;
     await sleep(90);
@@ -320,10 +445,10 @@ async function renderQuestionWithIntro() {
   const token = ++questionToken;
 
   hideResult();
-  clearMapHighlight();
+  hideMap();
   clearQuestionHero();
   resetQuestionArea();
-  els.grid.innerHTML = "";
+  if (els.grid) els.grid.innerHTML = "";
 
   const correct = pickCorrectPref();
   if (!correct) {
@@ -336,14 +461,14 @@ async function renderQuestionWithIntro() {
 
   const questionText = buildQuestionText(correct);
 
-  // Hint button
-  const hintOn = !!els.optHint.checked;
-  els.btnHint.hidden = !hintOn;
-  els.btnHint.onclick = () => {
-    alert(`ヒント：${correct.regionLabel} だよ！`);
-  };
+  const hintOn = !!els.optHint?.checked;
+  if (els.btnHint) {
+    els.btnHint.hidden = !hintOn;
+    els.btnHint.onclick = () => {
+      alert(`ヒント：${correct.regionLabel} だよ！`);
+    };
+  }
 
-  // 中央バーン表示
   const hero = ensureQuestionHero();
   hero.textContent = questionText;
   hero.classList.remove("hide");
@@ -356,13 +481,11 @@ async function renderQuestionWithIntro() {
   hero.classList.remove("show");
   hero.classList.add("hide");
 
-  // 上に問題を残す
-  els.qText.textContent = questionText;
+  if (els.qText) els.qText.textContent = questionText;
 
   await sleep(220);
   if (!current || current.token !== token) return;
 
-  // 4択表示
   renderChoicesOnly(choices);
 
   current.locked = false;
@@ -393,7 +516,7 @@ function onPick(pickedId, pickedBtnEl) {
 
   pickedBtnEl.classList.add("picked");
 
-  const correctEl = els.grid.querySelector(`[data-pref-id="${correct.id}"]`);
+  const correctEl = els.grid?.querySelector(`[data-pref-id="${correct.id}"]`);
   if (correctEl) addCorrectBlink(correctEl);
 
   showResult({ correct, picked, isCorrect });
@@ -401,17 +524,17 @@ function onPick(pickedId, pickedBtnEl) {
 
 /* ========= Events ========= */
 
-els.btnNext.addEventListener("click", () => {
+els.btnNext?.addEventListener("click", () => {
   renderQuestionWithIntro();
 });
 
-els.btnStart.addEventListener("click", async () => {
+els.btnStart?.addEventListener("click", async () => {
   showScreen("game");
   renderQuestionWithIntro();
 });
 
 els.optHint?.addEventListener("change", () => {
-  if (!current) return;
+  if (!current || !els.btnHint) return;
   els.btnHint.hidden = !els.optHint.checked;
 });
 
@@ -420,9 +543,10 @@ els.optHint?.addEventListener("change", () => {
 (async function main() {
   showScreen("title");
   closeDrawer();
+  initJapanSvg();
   setBadge("loading...");
   await loadPrefs();
   setBadge("ready");
   hideResult();
-  clearMapHighlight();
+  hideMap();
 })();
