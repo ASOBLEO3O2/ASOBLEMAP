@@ -1,640 +1,626 @@
-const $ = (sel) => document.querySelector(sel);
-
-const els = {
-  badge: $("#badge"),
-  btnOpenDrawer: $("#btnOpenDrawer"),
-
-  screenTitle: $("#screenTitle"),
-  screenGame: $("#screenGame"),
-  btnStart: $("#btnStart"),
-
-  qText: $("#qText"),
-  qHero: $("#qHero"),
-  grid: $("#grid"),
-
-  result: $("#result"),
-  resLine1: $("#resLine1"),
-  resName: $("#resName"),
-  resKana: $("#resKana"),
-  resLine2: $("#resLine2"),
-  btnNext: $("#btnNext"),
-
-  mapStage: $("#mapStage"),
-  mapLead: $("#mapLead"),
-  japanMap: $("#japanMap"),
-  mapPrefName: $("#mapPrefName"),
-  mapPrefKana: $("#mapPrefKana"),
-  btnMapNext: $("#btnMapNext"),
-};
-
-const PREFS_JSON_PATH = "data/prefs.json";
-
-let PREFS = [];
-let PREFS_BY_REGION = new Map();
-let lastRegions = [];
-let lastPrefId = null;
-
-let current = null;
-let questionToken = 0;
-
-let svgDoc = null;
-let svgRoot = null;
-let mapReady = false;
-let currentMapTarget = null;
-let currentOutlinedNodes = [];
-let defaultViewBox = "";
-let currentMapSeq = 0;
-
-function setBadge(text) {
-  if (els.badge) els.badge.textContent = text;
+@font-face {
+  font-family: "CherryBomb";
+  src: url("../fonts/CherryBombOne-Regular.ttf") format("truetype");
+  font-display: swap;
 }
 
-function sleep(ms) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
+:root {
+  --topbar-h: 56px;
+  --footer-h: 28px;
+  --content-max: 980px;
+
+  --white: #ffffff;
+  --text-dark: #4f4f4f;
+  --panel: rgba(255, 255, 255, 0.96);
+  --question-bg: rgba(120, 120, 120, 0.88);
+  --shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+
+  --choice-bg: rgba(96, 96, 96, 0.92);
+  --choice-bg-hover: rgba(112, 112, 112, 0.98);
+
+  --picked: #58bfff;
+  --correct: #ff4f4f;
 }
 
-function showScreen(name) {
-  const isTitle = name === "title";
-  const isGame = name === "game";
+* {
+  box-sizing: border-box;
+}
 
-  if (els.screenTitle) {
-    els.screenTitle.hidden = !isTitle;
-    els.screenTitle.classList.toggle("screenActive", isTitle);
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  color: var(--white);
+  font-family:
+    "CherryBomb",
+    "Hiragino Kaku Gothic ProN",
+    "Yu Gothic",
+    "Meiryo",
+    sans-serif;
+  background: #dfe8f4;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font: inherit;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 背景 */
+.bg {
+  position: absolute;
+  inset: 0;
+  background: url("../images/background.jpg") center center / cover no-repeat;
+  z-index: 0;
+}
+
+.topbar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  z-index: 20;
+}
+
+.brand {
+  font-size: clamp(16px, 1.8vw, 28px);
+  font-weight: 700;
+  color: #666666;
+  text-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.9),
+    0 0 8px rgba(255, 255, 255, 0.7);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.footer {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: var(--footer-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.65);
+  color: #666;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.btnIcon,
+.btnPrimary {
+  border: 0;
+  cursor: pointer;
+}
+
+.btnIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #666;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+}
+
+.btnPrimary {
+  min-width: 180px;
+  padding: 14px 28px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffe97d, #ffcb3c);
+  color: #5a4700;
+  font-size: clamp(20px, 2.2vw, 34px);
+  font-weight: 700;
+  box-shadow: var(--shadow);
+}
+
+.btnPrimary.small {
+  min-width: 160px;
+  padding: 10px 20px;
+  font-size: clamp(18px, 1.6vw, 24px);
+}
+
+.main {
+  position: absolute;
+  inset: var(--topbar-h) 0 var(--footer-h);
+  z-index: 10;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.screenActive {
+  display: block;
+}
+
+/* タイトル */
+#screenTitle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 20px;
+}
+
+.title {
+  margin: 0;
+  text-align: center;
+  color: #666666;
+  text-shadow:
+    0 3px 0 rgba(255, 255, 255, 0.95),
+    0 0 12px rgba(255, 255, 255, 0.8);
+  line-height: 1.05;
+}
+
+.titleSmall {
+  display: block;
+  font-size: clamp(22px, 2.2vw, 34px);
+  font-weight: 700;
+}
+
+.titleBig {
+  display: block;
+  font-size: clamp(48px, 5.8vw, 92px);
+  font-weight: 700;
+}
+
+/* ゲーム */
+#screenGame {
+  padding: 10px 16px 14px;
+}
+
+#screenGame.screenActive {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.question {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qText {
+  position: relative;
+  z-index: 2;
+  width: min(980px, 100%);
+  padding: 12px 18px;
+  border-radius: 16px;
+  background: var(--question-bg);
+  color: #ffffff;
+  text-align: center;
+  white-space: pre-line;
+  line-height: 1.35;
+  font-size: clamp(26px, 3vw, 44px);
+  font-weight: 700;
+  text-shadow:
+    0 2px 0 rgba(120, 120, 120, 0.9),
+    0 4px 10px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow);
+}
+
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  display: block;
+}
+
+.grid {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.choice {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  border: 6px solid transparent;
+  border-radius: 20px;
+  background: var(--choice-bg);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  cursor: pointer;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(18px) scale(0.96);
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.choice:hover {
+  transform: translateY(-2px) scale(1.01);
+  background: var(--choice-bg-hover);
+}
+
+.choice img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.choice.show {
+  animation: choiceIn 0.28s ease forwards;
+}
+
+.choice.picked {
+  border-color: var(--picked);
+  box-shadow:
+    0 0 0 4px rgba(88, 191, 255, 0.22),
+    0 0 18px rgba(88, 191, 255, 0.25),
+    var(--shadow);
+}
+
+.choice.correct {
+  animation: correctBlink 0.6s ease 3;
+  border-color: var(--correct);
+}
+
+.choice.correctHold {
+  border-color: var(--correct);
+  box-shadow:
+    0 0 0 4px rgba(255, 79, 79, 0.24),
+    0 0 20px rgba(255, 79, 79, 0.28),
+    var(--shadow);
+}
+
+/* 結果 */
+.result,
+.mapStage {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* 背景を見せる */
+.result {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.mapStage {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.resultCard {
+  width: min(620px, 92vw);
+  padding: 22px 20px 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #334;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.resLine1 {
+  font-size: clamp(26px, 2.8vw, 40px);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.resName {
+  margin-top: 8px;
+  font-size: clamp(36px, 4vw, 58px);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.resKana {
+  margin-top: 4px;
+  font-size: clamp(18px, 2vw, 28px);
+  font-weight: 700;
+}
+
+.resLine2 {
+  min-height: 1.6em;
+  margin-top: 10px;
+  font-size: clamp(22px, 2.4vw, 34px);
+  font-weight: 700;
+}
+
+#btnNext {
+  margin-top: 16px;
+}
+
+/* 地図ステージ */
+.mapStageCard {
+  width: min(92vw, 1100px);
+  padding: 18px 18px 16px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #334;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.mapLead {
+  font-size: clamp(30px, 3.4vw, 46px);
+  font-weight: 700;
+  color: #ff4f4f;
+  line-height: 1.2;
+}
+
+.mapObjectWrap {
+  width: 100%;
+  height: min(68vh, 760px);
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(240, 244, 248, 0.92);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.japanMap {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.mapPrefName {
+  margin-top: 10px;
+  min-height: 1.2em;
+  font-size: clamp(34px, 4vw, 54px);
+  font-weight: 700;
+  color: #334;
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.mapPrefKana {
+  margin-top: 2px;
+  min-height: 1.2em;
+  font-size: clamp(18px, 2vw, 28px);
+  font-weight: 700;
+  color: #556;
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.mapPrefName.show,
+.mapPrefKana.show {
+  animation: prefNameIn 0.32s ease forwards;
+}
+
+#btnMapNext {
+  margin-top: 14px;
+}
+
+/* バーン */
+.qHero {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  white-space: pre-line;
+  line-height: 1.25;
+  font-size: clamp(52px, 6.2vw, 104px);
+  font-weight: 700;
+  color: #666666;
+  text-shadow:
+    0 3px 0 rgba(255, 255, 255, 0.95),
+    0 0 18px rgba(255, 255, 255, 0.85);
+  opacity: 0;
+  transform: scale(0.72);
+  pointer-events: none;
+}
+
+.qHero.show {
+  animation: qHeroBurst 0.55s cubic-bezier(.22,.88,.24,1) forwards;
+}
+
+.qHero.hide {
+  animation: qHeroFade 0.28s ease forwards;
+}
+
+/* アニメ */
+@keyframes qHeroBurst {
+  0% {
+    opacity: 0;
+    transform: scale(0.45);
   }
-
-  if (els.screenGame) {
-    els.screenGame.hidden = !isGame;
-    els.screenGame.classList.toggle("screenActive", isGame);
+  65% {
+    opacity: 1;
+    transform: scale(1.08);
   }
-}
-
-function hideResult() {
-  if (els.result) els.result.hidden = true;
-}
-
-function showResult() {
-  if (els.result) els.result.hidden = false;
-}
-
-function hideMapStage() {
-  if (els.mapStage) els.mapStage.hidden = true;
-  resetMapStageTexts();
-  clearMapHighlight();
-  resetMapView();
-}
-
-function showMapStage() {
-  if (els.mapStage) els.mapStage.hidden = false;
-}
-
-function resetMapStageTexts() {
-  if (els.mapPrefName) {
-    els.mapPrefName.hidden = true;
-    els.mapPrefName.classList.remove("show");
-    els.mapPrefName.textContent = "";
-  }
-  if (els.mapPrefKana) {
-    els.mapPrefKana.hidden = true;
-    els.mapPrefKana.classList.remove("show");
-    els.mapPrefKana.textContent = "";
-  }
-}
-
-function clearQuestionHero() {
-  if (!els.qHero) return;
-  els.qHero.classList.remove("show", "hide");
-  els.qHero.textContent = "";
-}
-
-function resetQuestionArea() {
-  if (els.qText) els.qText.textContent = "";
-}
-
-function normalizePrefs(raw) {
-  const prefs = Array.isArray(raw?.prefs) ? raw.prefs : [];
-  return prefs
-    .map((p) => ({
-      id: Number(p.id),
-      code: String(p.code || "").padStart(2, "0"),
-      kanji: String(p.kanji || ""),
-      kana: String(p.kana || ""),
-      romaji: String(p.romaji || ""),
-      regionId: String(p.regionId || ""),
-      regionLabel: String(p.regionLabel || ""),
-      silhouette: p.silhouette || null,
-      mapHighlight: p.mapHighlight || null,
-    }))
-    .filter((p) => p.id && p.code && p.kanji && p.kana && p.silhouette);
-}
-
-async function loadPrefs() {
-  const res = await fetch(PREFS_JSON_PATH, { cache: "no-store" });
-  if (!res.ok) {
-    throw new Error(`prefs.json の読み込みに失敗しました: ${res.status}`);
-  }
-
-  const json = await res.json();
-  PREFS = normalizePrefs(json);
-
-  PREFS_BY_REGION = new Map();
-  for (const p of PREFS) {
-    if (!PREFS_BY_REGION.has(p.regionId)) {
-      PREFS_BY_REGION.set(p.regionId, []);
-    }
-    PREFS_BY_REGION.get(p.regionId).push(p);
-  }
-}
-
-function pickRegionBalanced() {
-  const regions = [...PREFS_BY_REGION.keys()];
-  const avoid = new Set(lastRegions.slice(-2));
-  let candidates = regions.filter((r) => !avoid.has(r));
-  if (!candidates.length) candidates = regions;
-
-  const recentCount = (rid) => lastRegions.filter((x) => x === rid).length;
-  candidates.sort((a, b) => recentCount(a) - recentCount(b));
-
-  const bestScore = recentCount(candidates[0]);
-  const best = candidates.filter((r) => recentCount(r) === bestScore);
-  return best[Math.floor(Math.random() * best.length)];
-}
-
-function pickCorrectPref() {
-  const rid = pickRegionBalanced();
-  const list = PREFS_BY_REGION.get(rid) || [];
-  if (!list.length) return null;
-
-  let pool = list;
-  if (lastPrefId != null && list.length > 1) {
-    pool = list.filter((p) => p.id !== lastPrefId);
-    if (!pool.length) pool = list;
-  }
-
-  const p = pool[Math.floor(Math.random() * pool.length)];
-
-  lastRegions.push(String(rid));
-  if (lastRegions.length > 18) lastRegions = lastRegions.slice(-18);
-  lastPrefId = p.id;
-
-  return p;
-}
-
-function shuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function buildChoices(correct) {
-  const used = new Set([correct.id]);
-  const wrongs = [];
-
-  const regionIds = [...PREFS_BY_REGION.keys()].filter(
-    (rid) => rid !== String(correct.regionId)
-  );
-
-  for (const rid of shuffle(regionIds)) {
-    const list = PREFS_BY_REGION.get(rid) || [];
-    const cands = shuffle(list).filter((p) => !used.has(p.id));
-    if (cands[0]) {
-      wrongs.push(cands[0]);
-      used.add(cands[0].id);
-    }
-    if (wrongs.length >= 3) break;
-  }
-
-  if (wrongs.length < 3) {
-    for (const p of shuffle(PREFS)) {
-      if (wrongs.length >= 3) break;
-      if (!used.has(p.id)) {
-        wrongs.push(p);
-        used.add(p.id);
-      }
-    }
-  }
-
-  return shuffle([correct, ...wrongs.slice(0, 3)]);
-}
-
-function buildQuestionText(correct) {
-  return `このシルエットから\n${correct.kana} をえらんでね！`;
-}
-
-function resetChoiceClasses() {
-  els.grid?.querySelectorAll(".choice").forEach((c) => {
-    c.classList.remove("picked", "correct", "correctHold", "show");
-  });
-}
-
-function addCorrectBlink(el) {
-  if (!el) return;
-  el.classList.add("correct");
-  window.setTimeout(() => {
-    el.classList.add("correctHold");
-  }, 1850);
-}
-
-function renderChoicesOnly(choices) {
-  if (!els.grid) return;
-  els.grid.innerHTML = "";
-
-  for (const p of choices) {
-    const btn = document.createElement("button");
-    btn.className = "choice";
-    btn.type = "button";
-    btn.dataset.prefId = String(p.id);
-    btn.setAttribute("aria-label", p.kana);
-
-    const img = document.createElement("img");
-    img.src = p.silhouette;
-    img.alt = "";
-    btn.appendChild(img);
-
-    btn.addEventListener("click", () => onPick(p.id, btn));
-    els.grid.appendChild(btn);
-  }
-}
-
-async function animateChoicesIn(token) {
-  const items = els.grid?.querySelectorAll(".choice") || [];
-  for (let i = 0; i < items.length; i++) {
-    if (!current || current.token !== token) return;
-    await sleep(90);
-    if (!current || current.token !== token) return;
-    items[i].classList.add("show");
-  }
-}
-
-async function renderQuestionWithIntro() {
-  const token = ++questionToken;
-
-  hideResult();
-  hideMapStage();
-  clearQuestionHero();
-  resetQuestionArea();
-  if (els.grid) els.grid.innerHTML = "";
-
-  const correct = pickCorrectPref();
-  if (!correct) {
-    setBadge("データがありません");
-    return;
-  }
-
-  const choices = buildChoices(correct);
-
-  current = {
-    token,
-    correct,
-    choices,
-    picked: null,
-    isCorrect: false,
-    locked: true,
-    phase: "question",
-  };
-
-  const questionText = buildQuestionText(correct);
-
-  if (els.qHero) {
-    els.qHero.textContent = questionText;
-    els.qHero.classList.remove("hide");
-    void els.qHero.offsetWidth;
-    els.qHero.classList.add("show");
-  }
-
-  await sleep(1050);
-  if (!current || current.token !== token) return;
-
-  if (els.qHero) {
-    els.qHero.classList.remove("show");
-    els.qHero.classList.add("hide");
-  }
-
-  if (els.qText) els.qText.textContent = questionText;
-
-  await sleep(220);
-  if (!current || current.token !== token) return;
-
-  renderChoicesOnly(choices);
-  current.locked = false;
-
-  await animateChoicesIn(token);
-  if (!current || current.token !== token) return;
-
-  clearQuestionHero();
-}
-
-function setResultTexts({ correct, picked, isCorrect }) {
-  if (els.resLine1) {
-    els.resLine1.textContent = isCorrect
-      ? "✨せいかい！✨"
-      : `おしい！それは ${picked.kanji} だよ！`;
-  }
-
-  if (els.resName) els.resName.textContent = correct.kanji;
-  if (els.resKana) els.resKana.textContent = `（${correct.kana}）`;
-  if (els.resLine2) {
-    els.resLine2.textContent = "つぎへ をおすと日本地図で場所がわかるよ！";
-  }
-}
-
-function onPick(pickedId, pickedBtnEl) {
-  if (!current || current.locked) return;
-  current.locked = true;
-
-  const correct = current.correct;
-  const picked = current.choices.find((p) => p.id === pickedId) || null;
-  if (!picked) {
-    current.locked = false;
-    return;
-  }
-
-  const isCorrect = picked.id === correct.id;
-  current.picked = picked;
-  current.isCorrect = isCorrect;
-  current.phase = "result";
-
-  resetChoiceClasses();
-
-  const correctEl = els.grid?.querySelector(`[data-pref-id="${correct.id}"]`);
-
-  if (isCorrect) {
-    if (pickedBtnEl) addCorrectBlink(pickedBtnEl);
-  } else {
-    pickedBtnEl?.classList.add("picked");
-    if (correctEl) addCorrectBlink(correctEl);
-  }
-
-  setResultTexts({ correct, picked, isCorrect });
-  showResult();
-}
-
-/* ========= SVG MAP ========= */
-
-function initJapanSvg() {
-  if (!els.japanMap) return;
-
-  const bindSvg = () => {
-    try {
-      svgDoc = els.japanMap.contentDocument || null;
-      svgRoot = svgDoc?.documentElement || null;
-      mapReady = !!svgDoc && !!svgRoot;
-      if (mapReady) {
-        defaultViewBox = svgRoot.getAttribute("viewBox") || "";
-        setBadge("map ready");
-      }
-    } catch (err) {
-      svgDoc = null;
-      svgRoot = null;
-      mapReady = false;
-      console.warn("failed to access SVG map:", err);
-    }
-  };
-
-  els.japanMap.addEventListener("load", bindSvg);
-
-  if (els.japanMap.contentDocument) {
-    bindSvg();
-  }
-}
-
-async function waitForSvgReady(timeoutMs = 4000) {
-  const started = Date.now();
-
-  while (Date.now() - started < timeoutMs) {
-    try {
-      if (els.japanMap?.contentDocument) {
-        svgDoc = els.japanMap.contentDocument;
-        svgRoot = svgDoc?.documentElement || null;
-        mapReady = !!svgDoc && !!svgRoot;
-        if (mapReady && !defaultViewBox) {
-          defaultViewBox = svgRoot.getAttribute("viewBox") || "";
-        }
-        return mapReady;
-      }
-    } catch (err) {
-      console.warn("waitForSvgReady error:", err);
-    }
-    await sleep(80);
-  }
-
-  return !!mapReady;
-}
-
-function ensureSvgBlinkStyle() {
-  if (!svgDoc) return;
-  if (svgDoc.getElementById("quiz-map-style")) return;
-
-  const style = svgDoc.createElementNS("http://www.w3.org/2000/svg", "style");
-  style.setAttribute("id", "quiz-map-style");
-  style.textContent = `
-    .quiz-outline-blink {
-      animation: quizOutlineBlink 0.62s ease 4;
-    }
-    @keyframes quizOutlineBlink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.35; }
-    }
-  `;
-  svgDoc.documentElement.appendChild(style);
-}
-
-function clearMapHighlight() {
-  if (currentMapTarget) {
-    currentMapTarget.classList.remove("quiz-outline-blink");
-  }
-
-  for (const node of currentOutlinedNodes) {
-    node.style.stroke = "";
-    node.style.strokeWidth = "";
-    node.style.strokeLinejoin = "";
-    node.style.paintOrder = "";
-    node.style.filter = "";
-    node.style.vectorEffect = "";
-  }
-
-  currentOutlinedNodes = [];
-  currentMapTarget = null;
-}
-
-function resetMapView() {
-  if (!svgRoot || !defaultViewBox) return;
-  svgRoot.setAttribute("viewBox", defaultViewBox);
-}
-
-function getFilledNodes(target) {
-  if (!target) return [];
-
-  const nodes = [...target.querySelectorAll("path, polygon, polyline")].filter((node) => {
-    const fillAttr = (node.getAttribute("fill") || "").trim().toLowerCase();
-    const styleFill = (node.style?.fill || "").trim().toLowerCase();
-
-    if (fillAttr && fillAttr !== "none") return true;
-    if (styleFill && styleFill !== "none") return true;
-
-    return false;
-  });
-
-  if (nodes.length) return nodes;
-
-  const targetFill = (target.getAttribute("fill") || "").trim().toLowerCase();
-  if (targetFill && targetFill !== "none") return [target];
-
-  return [];
-}
-
-function applyOutlineToTarget(target) {
-  const nodes = getFilledNodes(target);
-
-  if (!nodes.length) {
-    return [];
-  }
-
-  nodes.forEach((node) => {
-    node.style.stroke = "#ff4f4f";
-    node.style.strokeWidth = "5";
-    node.style.strokeLinejoin = "round";
-    node.style.paintOrder = "stroke fill";
-    node.style.filter = "drop-shadow(0 0 8px rgba(255,79,79,0.78))";
-    node.style.vectorEffect = "non-scaling-stroke";
-  });
-
-  return nodes;
-}
-
-function zoomToTarget(target) {
-  if (!svgRoot || !target || typeof target.getBBox !== "function") return;
-
-  try {
-    const bbox = target.getBBox();
-    if (!bbox || !bbox.width || !bbox.height) return;
-
-    const pad = Math.max(bbox.width, bbox.height) * 1.8;
-    const x = bbox.x - pad;
-    const y = bbox.y - pad;
-    const w = bbox.width + pad * 2;
-    const h = bbox.height + pad * 2;
-
-    svgRoot.setAttribute("viewBox", `${x} ${y} ${w} ${h}`);
-  } catch (err) {
-    console.warn("zoomToTarget failed:", err);
+  100% {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
-async function startMapSequence(pref) {
-  if (!pref) return;
-
-  const seq = ++currentMapSeq;
-
-  showMapStage();
-  resetMapStageTexts();
-
-  if (els.mapLead) {
-    els.mapLead.textContent = "ココだよ！";
+@keyframes qHeroFade {
+  from {
+    opacity: 1;
+    transform: scale(1);
   }
-
-  const ready = await waitForSvgReady();
-  if (!ready || !svgDoc || !svgRoot) {
-    setBadge("map ng");
-    if (els.mapLead) {
-      els.mapLead.textContent = "地図をよみこみ中…";
-    }
-    return;
+  to {
+    opacity: 0;
+    transform: scale(0.92);
   }
-
-  if (!current || current.phase !== "map" || seq !== currentMapSeq) return;
-
-  clearMapHighlight();
-  resetMapView();
-  ensureSvgBlinkStyle();
-
-  const target = svgDoc.querySelector(`g[id="${pref.code}"]`);
-  if (!target) {
-    console.warn("map target not found:", pref.code);
-    setBadge(`map id ng: ${pref.code}`);
-    return;
-  }
-
-  currentMapTarget = target;
-
-  await sleep(450);
-  if (!current || current.phase !== "map" || seq !== currentMapSeq) return;
-
-  currentOutlinedNodes = applyOutlineToTarget(target);
-  target.classList.add("quiz-outline-blink");
-
-  await sleep(700);
-  if (!current || current.phase !== "map" || seq !== currentMapSeq) return;
-
-  if (els.mapPrefName) {
-    els.mapPrefName.textContent = pref.kanji;
-    els.mapPrefName.hidden = false;
-    void els.mapPrefName.offsetWidth;
-    els.mapPrefName.classList.add("show");
-  }
-
-  if (els.mapPrefKana) {
-    els.mapPrefKana.textContent = `（${pref.kana}）`;
-    els.mapPrefKana.hidden = false;
-    void els.mapPrefKana.offsetWidth;
-    els.mapPrefKana.classList.add("show");
-  }
-
-  await sleep(550);
-  if (!current || current.phase !== "map" || seq !== currentMapSeq) return;
-
-  zoomToTarget(target);
 }
 
-async function moveResultToMapStage() {
-  if (!current || current.phase !== "result") return;
-
-  hideResult();
-  current.phase = "map";
-
-  await startMapSequence(current.correct);
-}
-
-function moveMapToNextQuestion() {
-  if (!current || current.phase !== "map") return;
-  renderQuestionWithIntro();
-}
-
-/* ========= Events ========= */
-
-els.btnNext?.addEventListener("click", () => {
-  moveResultToMapStage();
-});
-
-els.btnMapNext?.addEventListener("click", () => {
-  moveMapToNextQuestion();
-});
-
-els.btnStart?.addEventListener("click", () => {
-  showScreen("game");
-  renderQuestionWithIntro();
-});
-
-els.btnOpenDrawer?.addEventListener("click", () => {
-  // 今回は設定未使用
-});
-
-/* ========= Boot ========= */
-
-(async function main() {
-  try {
-    showScreen("title");
-    initJapanSvg();
-    hideResult();
-    hideMapStage();
-    setBadge("loading...");
-    await loadPrefs();
-    setBadge("ready");
-  } catch (err) {
-    console.error(err);
-    setBadge("load error");
-    alert("データの読み込みに失敗しました。ファイル配置を確認してください。");
+@keyframes choiceIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
   }
-})();
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes correctBlink {
+  0%, 100% {
+    border-color: var(--correct);
+    box-shadow:
+      0 0 0 4px rgba(255, 79, 79, 0.24),
+      0 0 22px rgba(255, 79, 79, 0.30),
+      var(--shadow);
+  }
+  50% {
+    border-color: rgba(255, 79, 79, 0.15);
+    box-shadow:
+      0 0 0 1px rgba(255, 79, 79, 0.06),
+      0 0 6px rgba(255, 79, 79, 0.08),
+      var(--shadow);
+  }
+}
+
+@keyframes prefNameIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 980px) {
+  .qText {
+    font-size: clamp(22px, 4.2vw, 34px);
+  }
+
+  .mapObjectWrap {
+    height: min(58vh, 620px);
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --topbar-h: 50px;
+    --footer-h: 24px;
+  }
+
+  .topbar {
+    padding: 6px 10px;
+  }
+
+  .brand {
+    font-size: 14px;
+  }
+
+  #screenGame {
+    padding: 8px 10px 12px;
+  }
+
+  .question {
+    min-height: 62px;
+  }
+
+  .qText {
+    padding: 10px 12px;
+    font-size: clamp(18px, 5vw, 24px);
+    border-radius: 14px;
+  }
+
+  .grid {
+    gap: 10px;
+  }
+
+  .choice {
+    border-width: 4px;
+    border-radius: 16px;
+    padding: 10px;
+  }
+
+  .resultCard,
+  .mapStageCard {
+    width: min(94vw, 1100px);
+    border-radius: 20px;
+  }
+
+  .mapObjectWrap {
+    height: min(46vh, 360px);
+    padding: 8px;
+  }
+
+  .qHero {
+    font-size: clamp(34px, 8vw, 62px);
+  }
+
+  .btnPrimary {
+    min-width: 150px;
+    padding: 12px 18px;
+    font-size: 20px;
+  }
+
+  .btnPrimary.small {
+    min-width: 150px;
+    font-size: 18px;
+  }
+}
