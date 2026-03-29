@@ -1,23 +1,25 @@
+@font-face {
+  font-family: "CherryBomb";
+  src: url("../fonts/CherryBombOne-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
 :root {
-  --bg1: #f8fbff;
-  --bg2: #eaf4ff;
-  --panel: rgba(255, 255, 255, 0.92);
-  --panel-strong: rgba(255, 255, 255, 0.97);
-  --text: #4b5563;
-  --text-strong: #374151;
-  --accent: #ff8fb3;
-  --accent-2: #8ec5ff;
-  --accent-3: #ffd27a;
-  --correct: #ff5d5d;
-  --picked: #60b7ff;
-  --shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
-  --shadow-strong: 0 18px 40px rgba(0, 0, 0, 0.22);
-  --topbar-h: 58px;
-  --footer-h: 30px;
-  --content-max: 1200px;
-  --question-bg: rgba(112, 112, 112, 0.92);
-  --choice-bg: rgba(255, 255, 255, 0.96);
-  --choice-bg-hover: rgba(255, 255, 255, 1);
+  --topbar-h: 56px;
+  --footer-h: 28px;
+  --content-max: 980px;
+
+  --white: #ffffff;
+  --text-dark: #4f4f4f;
+  --panel: rgba(255, 255, 255, 0.94);
+  --question-bg: rgba(120, 120, 120, 0.88);
+  --shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+
+  --choice-bg: rgba(96, 96, 96, 0.92);
+  --choice-bg-hover: rgba(112, 112, 112, 0.98);
+
+  --picked: #58bfff;
+  --correct: #ff4f4f;
 }
 
 * {
@@ -26,22 +28,26 @@
 
 html,
 body {
+  width: 100%;
+  height: 100%;
   margin: 0;
-  min-height: 100%;
-  font-family:
-    "Hiragino Sans",
-    "Yu Gothic",
-    "Meiryo",
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
-  color: var(--text);
-  background: linear-gradient(180deg, var(--bg1), var(--bg2));
 }
 
 body {
   overflow: hidden;
+  color: var(--white);
+  font-family:
+    "CherryBomb",
+    "Hiragino Kaku Gothic ProN",
+    "Yu Gothic",
+    "Meiryo",
+    sans-serif;
+  background: #dfe8f4;
+}
+
+img {
+  display: block;
+  max-width: 100%;
 }
 
 button {
@@ -54,64 +60,110 @@ button {
 
 .app {
   position: relative;
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
 }
 
+/* 背景 */
 .bg {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 15% 20%, rgba(255, 170, 200, 0.18), transparent 30%),
-    radial-gradient(circle at 85% 18%, rgba(142, 197, 255, 0.2), transparent 28%),
-    radial-gradient(circle at 70% 75%, rgba(255, 210, 122, 0.15), transparent 24%),
-    linear-gradient(180deg, #f9fcff 0%, #eef6ff 100%);
+  background: url("../images/background.jpg") center center / cover no-repeat;
   z-index: 0;
 }
 
 .topbar {
-  position: relative;
-  z-index: 10;
+  position: absolute;
+  inset: 0 0 auto 0;
   height: var(--topbar-h);
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-}
-
-.btnIcon {
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--text-strong);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
-  cursor: default;
+  padding: 8px 12px;
+  z-index: 20;
 }
 
 .brand {
-  font-size: clamp(16px, 1.6vw, 22px);
-  font-weight: 800;
-  color: #6b7280;
-  letter-spacing: 0.02em;
+  font-size: clamp(16px, 1.8vw, 28px);
+  font-weight: 700;
+  color: #666666;
+  text-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.9),
+    0 0 8px rgba(255, 255, 255, 0.7);
 }
 
 .spacer {
-  flex: 1 1 auto;
+  flex: 1;
+}
+
+.footer {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: var(--footer-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.65);
+  color: #666;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.btnIcon,
+.btnPrimary {
+  border: 0;
+  cursor: pointer;
+}
+
+.btnIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #666;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+}
+
+.btnPrimary {
+  min-width: 180px;
+  padding: 14px 28px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffe97d, #ffcb3c);
+  color: #5a4700;
+  font-size: clamp(20px, 2.2vw, 34px);
+  font-weight: 700;
+  box-shadow: var(--shadow);
+}
+
+.btnPrimary.small {
+  min-width: 160px;
+  padding: 10px 20px;
+  font-size: clamp(18px, 1.6vw, 24px);
 }
 
 .main {
-  position: relative;
-  z-index: 1;
-  height: calc(100vh - var(--topbar-h) - var(--footer-h));
-  padding: 8px 14px 12px;
+  position: absolute;
+  inset: var(--topbar-h) 0 var(--footer-h);
+  z-index: 10;
 }
 
 .screen {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
 }
@@ -120,45 +172,47 @@ button {
   display: block;
 }
 
+/* タイトル */
 #screenTitle {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 30px;
+  gap: 28px;
   padding: 20px;
 }
 
 .title {
   margin: 0;
   text-align: center;
-  line-height: 1.05;
   color: #666666;
   text-shadow:
-    0 3px 0 rgba(255, 255, 255, 0.96),
-    0 0 14px rgba(255, 255, 255, 0.86);
+    0 3px 0 rgba(255, 255, 255, 0.95),
+    0 0 12px rgba(255, 255, 255, 0.8);
+  line-height: 1.05;
 }
 
 .titleSmall {
   display: block;
   font-size: clamp(22px, 2.2vw, 34px);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .titleBig {
   display: block;
-  font-size: clamp(54px, 6vw, 94px);
-  font-weight: 900;
+  font-size: clamp(48px, 5.8vw, 92px);
+  font-weight: 700;
 }
 
+/* ゲーム */
 #screenGame {
-  padding: 4px 6px 8px;
+  padding: 10px 16px 14px;
 }
 
 #screenGame.screenActive {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .question {
@@ -167,23 +221,25 @@ button {
   width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
-  min-height: 84px;
+  min-height: 76px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .qText {
+  position: relative;
+  z-index: 2;
   width: min(980px, 100%);
-  padding: 14px 20px;
-  border-radius: 18px;
+  padding: 12px 18px;
+  border-radius: 16px;
   background: var(--question-bg);
   color: #ffffff;
   text-align: center;
   white-space: pre-line;
   line-height: 1.35;
-  font-size: clamp(28px, 3vw, 46px);
-  font-weight: 800;
+  font-size: clamp(26px, 3vw, 44px);
+  font-weight: 700;
   text-shadow:
     0 2px 0 rgba(120, 120, 120, 0.9),
     0 4px 10px rgba(0, 0, 0, 0.12);
@@ -197,30 +253,36 @@ button {
   width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
+  display: block;
 }
 
 .grid {
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .choice {
   position: relative;
   min-width: 0;
   min-height: 0;
-  aspect-ratio: 1 / 1;
+  width: 100%;
+  height: 100%;
   border: 6px solid transparent;
-  border-radius: 22px;
+  border-radius: 20px;
   background: var(--choice-bg);
   box-shadow: var(--shadow);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 14px;
   cursor: pointer;
+  overflow: hidden;
   opacity: 0;
   transform: translateY(18px) scale(0.96);
   transition:
@@ -228,10 +290,6 @@ button {
     background 0.18s ease,
     border-color 0.18s ease,
     box-shadow 0.18s ease;
-}
-
-.choice.show {
-  animation: choiceIn 0.28s ease forwards;
 }
 
 .choice:hover {
@@ -243,13 +301,16 @@ button {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  pointer-events: none;
+}
+
+.choice.show {
+  animation: choiceIn 0.28s ease forwards;
 }
 
 .choice.picked {
   border-color: var(--picked);
   box-shadow:
-    0 0 0 4px rgba(96, 183, 255, 0.18),
+    0 0 0 4px rgba(88, 191, 255, 0.18),
     var(--shadow);
 }
 
@@ -265,6 +326,7 @@ button {
     var(--shadow);
 }
 
+/* 結果 */
 .result,
 .mapStage {
   position: absolute;
@@ -274,80 +336,76 @@ button {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(0, 0, 0, 0.18);
-}
-
-.resultCard,
-.mapStageCard {
-  width: min(760px, 94vw);
-  border-radius: 26px;
-  background: var(--panel-strong);
-  box-shadow: var(--shadow-strong);
-  text-align: center;
+  background: rgba(0, 0, 0, 0.16);
 }
 
 .resultCard {
-  padding: 24px 22px 20px;
+  width: min(620px, 92vw);
+  padding: 22px 20px 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #334;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+  text-align: center;
 }
 
 .resLine1 {
-  font-size: clamp(28px, 2.8vw, 42px);
-  font-weight: 800;
+  font-size: clamp(26px, 2.8vw, 40px);
+  font-weight: 700;
   line-height: 1.35;
-  color: #4b5563;
 }
 
 .resName {
-  margin-top: 10px;
-  font-size: clamp(40px, 4.4vw, 62px);
-  font-weight: 900;
-  line-height: 1.1;
-  color: #374151;
+  margin-top: 8px;
+  font-size: clamp(36px, 4vw, 58px);
+  font-weight: 700;
+  line-height: 1.15;
 }
 
 .resKana {
   margin-top: 4px;
-  font-size: clamp(20px, 2.2vw, 30px);
-  font-weight: 800;
-  color: #6b7280;
+  font-size: clamp(18px, 2vw, 28px);
+  font-weight: 700;
 }
 
 .resLine2 {
   min-height: 1.6em;
-  margin-top: 12px;
+  margin-top: 10px;
   font-size: clamp(22px, 2.4vw, 34px);
-  font-weight: 800;
-  color: #6b7280;
+  font-weight: 700;
 }
 
+#btnNext {
+  margin-top: 16px;
+}
+
+/* 地図ステージ */
 .mapStageCard {
-  padding: 20px 20px 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
+  width: min(640px, 92vw);
+  padding: 18px 16px 16px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #334;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+  text-align: center;
 }
 
 .mapLead {
-  font-size: clamp(34px, 3.5vw, 52px);
-  font-weight: 900;
-  color: #ff5d5d;
-  text-shadow:
-    0 2px 0 rgba(255, 255, 255, 0.9),
-    0 0 12px rgba(255, 93, 93, 0.14);
+  font-size: clamp(30px, 3.4vw, 46px);
+  font-weight: 700;
+  color: #ff4f4f;
+  line-height: 1.2;
 }
 
 .mapObjectWrap {
-  width: min(860px, 100%);
-  height: min(56vh, 560px);
-  border-radius: 22px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,255,0.98));
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
-  padding: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 100%;
+  height: min(46vh, 420px);
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(240, 244, 248, 0.92);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
 .japanMap {
@@ -357,46 +415,35 @@ button {
 }
 
 .mapPrefName {
-  min-height: 1.4em;
-  font-size: clamp(34px, 3.8vw, 56px);
-  font-weight: 900;
-  color: #374151;
+  margin-top: 10px;
+  min-height: 1.2em;
+  font-size: clamp(34px, 4vw, 54px);
+  font-weight: 700;
+  color: #334;
   opacity: 0;
-  transform: translateY(8px) scale(0.96);
+  transform: translateY(8px);
 }
 
-.mapPrefName.show {
-  animation: prefNameIn 0.38s ease forwards;
+.mapPrefKana {
+  margin-top: 2px;
+  min-height: 1.2em;
+  font-size: clamp(18px, 2vw, 28px);
+  font-weight: 700;
+  color: #556;
+  opacity: 0;
+  transform: translateY(8px);
 }
 
-.btnPrimary {
-  min-width: 180px;
-  padding: 14px 26px;
-  border: 0;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #ffa0b8, #ff7f9f);
-  color: #ffffff;
-  font-size: clamp(22px, 2vw, 28px);
-  font-weight: 900;
-  box-shadow: 0 12px 24px rgba(255, 127, 159, 0.28);
-  cursor: pointer;
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    filter 0.18s ease;
+.mapPrefName.show,
+.mapPrefKana.show {
+  animation: prefNameIn 0.32s ease forwards;
 }
 
-.btnPrimary:hover {
-  transform: translateY(-2px) scale(1.01);
-  filter: brightness(1.03);
+#btnMapNext {
+  margin-top: 14px;
 }
 
-.btnPrimary.small {
-  min-width: 170px;
-  padding: 12px 22px;
-  font-size: clamp(20px, 1.9vw, 26px);
-}
-
+/* バーン */
 .qHero {
   position: absolute;
   inset: 0;
@@ -409,11 +456,11 @@ button {
   white-space: pre-line;
   line-height: 1.25;
   font-size: clamp(52px, 6.2vw, 104px);
-  font-weight: 900;
+  font-weight: 700;
   color: #666666;
   text-shadow:
-    0 3px 0 rgba(255, 255, 255, 0.96),
-    0 0 18px rgba(255, 255, 255, 0.88);
+    0 3px 0 rgba(255, 255, 255, 0.95),
+    0 0 18px rgba(255, 255, 255, 0.85);
   opacity: 0;
   transform: scale(0.72);
   pointer-events: none;
@@ -427,27 +474,7 @@ button {
   animation: qHeroFade 0.28s ease forwards;
 }
 
-.footer {
-  position: relative;
-  z-index: 10;
-  height: var(--footer-h);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.52);
-  backdrop-filter: blur(6px);
-}
-
-.badge {
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #6b7280;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-
+/* アニメ */
 @keyframes qHeroBurst {
   0% {
     opacity: 0;
@@ -503,27 +530,23 @@ button {
 @keyframes prefNameIn {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.96);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
 @media (max-width: 980px) {
   .qText {
-    font-size: clamp(22px, 4vw, 34px);
-  }
-
-  .mapObjectWrap {
-    height: min(50vh, 460px);
+    font-size: clamp(22px, 4.2vw, 34px);
   }
 }
 
 @media (max-width: 640px) {
   :root {
-    --topbar-h: 52px;
+    --topbar-h: 50px;
     --footer-h: 24px;
   }
 
@@ -535,16 +558,12 @@ button {
     font-size: 14px;
   }
 
-  .main {
-    padding: 8px 8px 10px;
-  }
-
   #screenGame {
-    padding: 2px 0 6px;
+    padding: 8px 10px 12px;
   }
 
   .question {
-    min-height: 64px;
+    min-height: 62px;
   }
 
   .qText {
@@ -558,20 +577,24 @@ button {
   }
 
   .choice {
+    border-width: 4px;
     border-radius: 16px;
     padding: 10px;
-    border-width: 4px;
   }
 
   .resultCard,
   .mapStageCard {
-    width: min(96vw, 760px);
+    width: min(94vw, 620px);
     border-radius: 20px;
   }
 
   .mapObjectWrap {
-    height: min(44vh, 340px);
-    padding: 10px;
+    height: min(40vh, 300px);
+    padding: 8px;
+  }
+
+  .qHero {
+    font-size: clamp(34px, 8vw, 62px);
   }
 
   .btnPrimary {
@@ -583,9 +606,5 @@ button {
   .btnPrimary.small {
     min-width: 150px;
     font-size: 18px;
-  }
-
-  .qHero {
-    font-size: clamp(32px, 8vw, 56px);
   }
 }
