@@ -23,6 +23,7 @@ const els = {
   mapLead: $("#mapLead"),
   japanMap: $("#japanMap"),
   mapPrefName: $("#mapPrefName"),
+  mapPrefKana: $("#mapPrefKana"),
   btnMapNext: $("#btnMapNext"),
 };
 
@@ -30,13 +31,19 @@ const PREFS_JSON_PATH = "data/prefs.json";
 
 let PREFS = [];
 let PREFS_BY_REGION = new Map();
+let lastRegions = [];
+let lastPrefId = null;
 
 let current = null;
 let questionToken = 0;
 
 let svgDoc = null;
+let svgRoot = null;
 let mapReady = false;
 let currentMapTarget = null;
+let currentOutlinedNodes = [];
+let defaultViewBox = "";
+let currentMapSeq = 0;
 
 function setBadge(text) {
   if (els.badge) els.badge.textContent = text;
@@ -71,22 +78,32 @@ function showResult() {
 
 function hideMapStage() {
   if (els.mapStage) els.mapStage.hidden = true;
-  if (els.mapPrefName) {
-    els.mapPrefName.hidden = true;
-    els.mapPrefName.classList.remove("show");
-    els.mapPrefName.textContent = "";
-  }
+  resetMapStageTexts();
   clearMapHighlight();
+  resetMapView();
 }
 
 function showMapStage() {
   if (els.mapStage) els.mapStage.hidden = false;
 }
 
+function resetMapStageTexts() {
+  if (els.mapPrefName) {
+    els.mapPrefName.hidden = true;
+    els.mapPrefName.classList.remove("show");
+    els.mapPrefName.textContent = "";
+  }
+  if (els.mapPrefKana) {
+    els.mapPrefKana.hidden = true;
+    els.mapPrefKana.classList.remove("show");
+    els.mapPrefKana.textContent = "";
+  }
+}
+
 function clearQuestionHero() {
   if (!els.qHero) return;
-  els.qHero.textContent = "";
   els.qHero.classList.remove("show", "hide");
+  els.qHero.textContent = "";
 }
 
 function resetQuestionArea() {
@@ -94,7 +111,7 @@ function resetQuestionArea() {
 }
 
 function normalizePrefs(raw) {
-  const prefs = Array.isArray(raw?.prefs) ? raw.prefs : Array.isArray(raw) ? raw : [];
+  const prefs = Array.isArray(raw?.prefs) ? raw.prefs : [];
   return prefs
     .map((p) => ({
       id: Number(p.id),
@@ -113,7 +130,7 @@ function normalizePrefs(raw) {
 async function loadPrefs() {
   const res = await fetch(PREFS_JSON_PATH, { cache: "no-store" });
   if (!res.ok) {
-    throw new Error(`都道府県データの読込に失敗しました: ${res.status}`);
+    throw new Error(`prefs.json の読み込みに失敗しました: ${res.status}`);
   }
 
   const json = await res.json();
@@ -128,8 +145,42 @@ async function loadPrefs() {
   }
 }
 
+function pickRegionBalanced() {
+  const regions = [...PREFS_BY_REGION.keys()];
+  const avoid = new Set(lastRegions.slice(-2));
+  let candidates = regions.filter((r) => !avoid.has(r));
+  if (!candidates.length) candidates = regions;
+
+  const recentCount = (rid) => lastRegions.filter((x) => x === rid).length;
+  candidates.sort((a, b) => recentCount(a) - recentCount(b));
+
+  const bestScore = recentCount(candidates[0]);
+  const best = candidates.filter((r) => recentCount(r) === bestScore);
+  return best[Math.floor(Math.random() * best.length)];
+}
+
+function pickCorrectPref() {
+  const rid = pickRegionBalanced();
+  const list = PREFS_BY_REGION.get(rid) || [];
+  if (!list.length) return null;
+
+  let pool = list;
+  if (lastPrefId != null && list.length > 1) {
+    pool = list.filter((p) => p.id !== lastPrefId);
+    if (!pool.length) pool = list;
+  }
+
+  const p = pool[Math.floor(Math.random() * pool.length)];
+
+  lastRegions.push(String(rid));
+  if (lastRegions.length > 18) lastRegions = lastRegions.slice(-18);
+  lastPrefId = p.id;
+
+  return p;
+}
+
 function shuffle(arr) {
-  const a = [...arr];
+  const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
@@ -137,14 +188,9 @@ function shuffle(arr) {
   return a;
 }
 
-function pickCorrectPref() {
-  if (!PREFS.length) return null;
-  return PREFS[Math.floor(Math.random() * PREFS.length)] || null;
-}
-
 function buildChoices(correct) {
-  const wrongs = [];
   const used = new Set([correct.id]);
+  const wrongs = [];
 
   const regionIds = [...PREFS_BY_REGION.keys()].filter(
     (rid) => rid !== String(correct.regionId)
@@ -184,6 +230,7 @@ function resetChoiceClasses() {
 }
 
 function addCorrectBlink(el) {
+  if (!el) return;
   el.classList.add("correct");
   window.setTimeout(() => {
     el.classList.add("correctHold");
@@ -192,7 +239,6 @@ function addCorrectBlink(el) {
 
 function renderChoicesOnly(choices) {
   if (!els.grid) return;
-
   els.grid.innerHTML = "";
 
   for (const p of choices) {
@@ -229,7 +275,6 @@ async function renderQuestionWithIntro() {
   hideMapStage();
   clearQuestionHero();
   resetQuestionArea();
-
   if (els.grid) els.grid.innerHTML = "";
 
   const correct = pickCorrectPref();
@@ -239,14 +284,15 @@ async function renderQuestionWithIntro() {
   }
 
   const choices = buildChoices(correct);
+
   current = {
+    token,
     correct,
     choices,
     picked: null,
     isCorrect: false,
     locked: true,
     phase: "question",
-    token,
   };
 
   const questionText = buildQuestionText(correct);
@@ -290,9 +336,7 @@ function setResultTexts({ correct, picked, isCorrect }) {
   if (els.resName) els.resName.textContent = correct.kanji;
   if (els.resKana) els.resKana.textContent = `（${correct.kana}）`;
   if (els.resLine2) {
-    els.resLine2.textContent = isCorrect
-      ? "つぎへ をおすと日本地図で場所がわかるよ！"
-      : "つぎへ をおすと日本地図で場所がわかるよ！";
+    els.resLine2.textContent = "つぎへ をおすと日本地図で場所がわかるよ！";
   }
 }
 
@@ -307,21 +351,27 @@ function onPick(pickedId, pickedBtnEl) {
     return;
   }
 
-  const isCorrect = pickedId === correct.id;
+  const isCorrect = picked.id === correct.id;
   current.picked = picked;
   current.isCorrect = isCorrect;
   current.phase = "result";
 
   resetChoiceClasses();
 
-  pickedBtnEl.classList.add("picked");
-
   const correctEl = els.grid?.querySelector(`[data-pref-id="${correct.id}"]`);
-  if (correctEl) addCorrectBlink(correctEl);
+
+  if (isCorrect) {
+    if (pickedBtnEl) addCorrectBlink(pickedBtnEl);
+  } else {
+    pickedBtnEl?.classList.add("picked");
+    if (correctEl) addCorrectBlink(correctEl);
+  }
 
   setResultTexts({ correct, picked, isCorrect });
   showResult();
 }
+
+/* ========= SVG MAP ========= */
 
 function initJapanSvg() {
   if (!els.japanMap) return;
@@ -329,12 +379,15 @@ function initJapanSvg() {
   const bindSvg = () => {
     try {
       svgDoc = els.japanMap.contentDocument || null;
-      mapReady = !!svgDoc;
+      svgRoot = svgDoc?.documentElement || null;
+      mapReady = !!svgDoc && !!svgRoot;
       if (mapReady) {
+        defaultViewBox = svgRoot.getAttribute("viewBox") || "";
         setBadge("map ready");
       }
     } catch (err) {
       svgDoc = null;
+      svgRoot = null;
       mapReady = false;
       console.warn("failed to access SVG map:", err);
     }
@@ -354,8 +407,12 @@ async function waitForSvgReady(timeoutMs = 4000) {
     try {
       if (els.japanMap?.contentDocument) {
         svgDoc = els.japanMap.contentDocument;
-        mapReady = true;
-        return true;
+        svgRoot = svgDoc?.documentElement || null;
+        mapReady = !!svgDoc && !!svgRoot;
+        if (mapReady && !defaultViewBox) {
+          defaultViewBox = svgRoot.getAttribute("viewBox") || "";
+        }
+        return mapReady;
       }
     } catch (err) {
       console.warn("waitForSvgReady error:", err);
@@ -366,34 +423,6 @@ async function waitForSvgReady(timeoutMs = 4000) {
   return !!mapReady;
 }
 
-function clearMapHighlight() {
-  if (currentMapTarget) {
-    currentMapTarget.classList.remove("pref-outline-blink");
-
-    currentMapTarget.style.stroke = "";
-    currentMapTarget.style.strokeWidth = "";
-    currentMapTarget.style.strokeLinejoin = "";
-    currentMapTarget.style.filter = "";
-    currentMapTarget.style.paintOrder = "";
-
-    const paths = currentMapTarget.querySelectorAll("path, polygon, polyline");
-    paths.forEach((node) => {
-      node.style.stroke = "";
-      node.style.strokeWidth = "";
-      node.style.strokeLinejoin = "";
-      node.style.filter = "";
-      node.style.paintOrder = "";
-    });
-
-    currentMapTarget = null;
-  }
-
-  if (svgDoc) {
-    const styleEl = svgDoc.getElementById("quiz-map-style");
-    if (styleEl) styleEl.remove();
-  }
-}
-
 function ensureSvgBlinkStyle() {
   if (!svgDoc) return;
   if (svgDoc.getElementById("quiz-map-style")) return;
@@ -401,86 +430,143 @@ function ensureSvgBlinkStyle() {
   const style = svgDoc.createElementNS("http://www.w3.org/2000/svg", "style");
   style.setAttribute("id", "quiz-map-style");
   style.textContent = `
-    .pref-outline-blink {
-      animation: prefOutlineBlink 0.62s ease 4;
+    .quiz-outline-blink {
+      animation: quizOutlineBlink 0.62s ease 4;
     }
-
-    @keyframes prefOutlineBlink {
-      0%, 100% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.38;
-      }
+    @keyframes quizOutlineBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
     }
   `;
-
   svgDoc.documentElement.appendChild(style);
 }
 
-function applyOutlineToTarget(target) {
-  const nodes = target.querySelectorAll("path, polygon, polyline");
+function clearMapHighlight() {
+  if (currentMapTarget) {
+    currentMapTarget.classList.remove("quiz-outline-blink");
+  }
 
-  if (nodes.length) {
-    nodes.forEach((node) => {
-      node.style.stroke = "#ff4f4f";
-      node.style.strokeWidth = "5";
-      node.style.strokeLinejoin = "round";
-      node.style.paintOrder = "stroke fill";
-      node.style.filter = "drop-shadow(0 0 8px rgba(255,79,79,0.75))";
-    });
-  } else {
-    target.style.stroke = "#ff4f4f";
-    target.style.strokeWidth = "5";
-    target.style.strokeLinejoin = "round";
-    target.style.paintOrder = "stroke fill";
-    target.style.filter = "drop-shadow(0 0 8px rgba(255,79,79,0.75))";
+  for (const node of currentOutlinedNodes) {
+    node.style.stroke = "";
+    node.style.strokeWidth = "";
+    node.style.strokeLinejoin = "";
+    node.style.paintOrder = "";
+    node.style.filter = "";
+    node.style.vectorEffect = "";
+  }
+
+  currentOutlinedNodes = [];
+  currentMapTarget = null;
+}
+
+function resetMapView() {
+  if (!svgRoot || !defaultViewBox) return;
+  svgRoot.setAttribute("viewBox", defaultViewBox);
+}
+
+function getFilledNodes(target) {
+  if (!target) return [];
+
+  const nodes = [...target.querySelectorAll("path, polygon, polyline")].filter((node) => {
+    const fillAttr = (node.getAttribute("fill") || "").trim().toLowerCase();
+    const styleFill = (node.style?.fill || "").trim().toLowerCase();
+
+    if (fillAttr && fillAttr !== "none") return true;
+    if (styleFill && styleFill !== "none") return true;
+
+    return false;
+  });
+
+  if (nodes.length) return nodes;
+
+  const targetFill = (target.getAttribute("fill") || "").trim().toLowerCase();
+  if (targetFill && targetFill !== "none") return [target];
+
+  return [];
+}
+
+function applyOutlineToTarget(target) {
+  const nodes = getFilledNodes(target);
+
+  if (!nodes.length) {
+    return [];
+  }
+
+  nodes.forEach((node) => {
+    node.style.stroke = "#ff4f4f";
+    node.style.strokeWidth = "5";
+    node.style.strokeLinejoin = "round";
+    node.style.paintOrder = "stroke fill";
+    node.style.filter = "drop-shadow(0 0 8px rgba(255,79,79,0.78))";
+    node.style.vectorEffect = "non-scaling-stroke";
+  });
+
+  return nodes;
+}
+
+function zoomToTarget(target) {
+  if (!svgRoot || !target || typeof target.getBBox !== "function") return;
+
+  try {
+    const bbox = target.getBBox();
+    if (!bbox || !bbox.width || !bbox.height) return;
+
+    const pad = Math.max(bbox.width, bbox.height) * 1.8;
+    const x = bbox.x - pad;
+    const y = bbox.y - pad;
+    const w = bbox.width + pad * 2;
+    const h = bbox.height + pad * 2;
+
+    svgRoot.setAttribute("viewBox", `${x} ${y} ${w} ${h}`);
+  } catch (err) {
+    console.warn("zoomToTarget failed:", err);
   }
 }
 
 async function startMapSequence(pref) {
   if (!pref) return;
 
+  const seq = ++currentMapSeq;
+
   showMapStage();
+  resetMapStageTexts();
 
   if (els.mapLead) {
     els.mapLead.textContent = "ココだよ！";
   }
 
-  if (els.mapPrefName) {
-    els.mapPrefName.hidden = true;
-    els.mapPrefName.classList.remove("show");
-    els.mapPrefName.textContent = "";
-  }
-
   const ready = await waitForSvgReady();
-  if (!ready || !svgDoc) {
-    setBadge("map wait");
+  if (!ready || !svgDoc || !svgRoot) {
+    setBadge("map ng");
     if (els.mapLead) {
       els.mapLead.textContent = "地図をよみこみ中…";
     }
     return;
   }
 
+  if (!current || current.phase !== "map" || seq !== currentMapSeq) return;
+
   clearMapHighlight();
+  resetMapView();
   ensureSvgBlinkStyle();
 
   const target = svgDoc.querySelector(`g[id="${pref.code}"]`);
   if (!target) {
-    console.warn("見つからない:", pref.code);
+    console.warn("map target not found:", pref.code);
     setBadge(`map id ng: ${pref.code}`);
     return;
   }
 
   currentMapTarget = target;
-  applyOutlineToTarget(target);
-  target.classList.add("pref-outline-blink");
+
+  await sleep(450);
+  if (!current || current.phase !== "map" || seq !== currentMapSeq) return;
+
+  currentOutlinedNodes = applyOutlineToTarget(target);
+  target.classList.add("quiz-outline-blink");
 
   await sleep(700);
-
-  if (!current || current.correct.id !== pref.id || current.phase !== "map") {
-    return;
-  }
+  if (!current || current.phase !== "map" || seq !== currentMapSeq) return;
 
   if (els.mapPrefName) {
     els.mapPrefName.textContent = pref.kanji;
@@ -488,6 +574,18 @@ async function startMapSequence(pref) {
     void els.mapPrefName.offsetWidth;
     els.mapPrefName.classList.add("show");
   }
+
+  if (els.mapPrefKana) {
+    els.mapPrefKana.textContent = `（${pref.kana}）`;
+    els.mapPrefKana.hidden = false;
+    void els.mapPrefKana.offsetWidth;
+    els.mapPrefKana.classList.add("show");
+  }
+
+  await sleep(550);
+  if (!current || current.phase !== "map" || seq !== currentMapSeq) return;
+
+  zoomToTarget(target);
 }
 
 async function moveResultToMapStage() {
@@ -504,6 +602,8 @@ function moveMapToNextQuestion() {
   renderQuestionWithIntro();
 }
 
+/* ========= Events ========= */
+
 els.btnNext?.addEventListener("click", () => {
   moveResultToMapStage();
 });
@@ -518,8 +618,10 @@ els.btnStart?.addEventListener("click", () => {
 });
 
 els.btnOpenDrawer?.addEventListener("click", () => {
-  // 今回は設定パネル未使用のため何もしない
+  // 今回は設定未使用
 });
+
+/* ========= Boot ========= */
 
 (async function main() {
   try {
@@ -533,6 +635,6 @@ els.btnOpenDrawer?.addEventListener("click", () => {
   } catch (err) {
     console.error(err);
     setBadge("load error");
-    alert("データの読み込みに失敗しました。JSONの場所を確認してください。");
+    alert("データの読み込みに失敗しました。ファイル配置を確認してください。");
   }
 })();
