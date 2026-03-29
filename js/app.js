@@ -20,7 +20,6 @@ const els = {
   btnNext: $("#btnNext"),
 
   mapStage: $("#mapStage"),
-  mapLead: $("#mapLead"),
   japanMap: $("#japanMap"),
   mapPrefName: $("#mapPrefName"),
   mapPrefKana: $("#mapPrefKana"),
@@ -234,7 +233,7 @@ function addCorrectBlink(el) {
   el.classList.add("correct");
   window.setTimeout(() => {
     el.classList.add("correctHold");
-  }, 1850);
+  }, 1200);
 }
 
 function renderChoicesOnly(choices) {
@@ -435,7 +434,7 @@ function ensureSvgBlinkStyle() {
   style.setAttribute("id", "quiz-map-style");
   style.textContent = `
     .quiz-outline-blink {
-      animation: quizOutlineBlink 0.52s ease 5;
+      animation: quizOutlineBlink 0.6s ease infinite;
     }
 
     @keyframes quizOutlineBlink {
@@ -443,7 +442,7 @@ function ensureSvgBlinkStyle() {
         opacity: 1;
       }
       50% {
-        opacity: 0.72;
+        opacity: 0.55;
       }
     }
   `;
@@ -498,11 +497,12 @@ function applyOutlineToTarget(target) {
   if (!nodes.length) return [];
 
   nodes.forEach((node) => {
-    node.style.stroke = "#ff2a2a";
-    node.style.strokeWidth = "8";
+    node.style.stroke = "#ff4fd8";
+    node.style.strokeWidth = "10";
     node.style.strokeLinejoin = "round";
     node.style.paintOrder = "stroke fill";
-    node.style.filter = "drop-shadow(0 0 10px rgba(255, 42, 42, 0.95)) drop-shadow(0 0 18px rgba(255, 42, 42, 0.70))";
+    node.style.filter =
+      "drop-shadow(0 0 12px rgba(255, 79, 216, 1)) drop-shadow(0 0 24px rgba(255, 79, 216, 0.8))";
     node.style.vectorEffect = "non-scaling-stroke";
   });
 
@@ -516,7 +516,7 @@ function zoomToTarget(target) {
     const bbox = target.getBBox();
     if (!bbox || !bbox.width || !bbox.height) return;
 
-    const pad = Math.max(bbox.width, bbox.height) * 1.15;
+    const pad = Math.max(bbox.width, bbox.height) * 0.9;
     const x = bbox.x - pad;
     const y = bbox.y - pad;
     const w = bbox.width + pad * 2;
@@ -536,16 +536,9 @@ async function startMapSequence(pref) {
   showMapStage();
   resetMapStageTexts();
 
-  if (els.mapLead) {
-    els.mapLead.textContent = "ココだよ！";
-  }
-
   const ready = await waitForSvgReady();
   if (!ready || !svgDoc || !svgRoot) {
     setBadge("map ng");
-    if (els.mapLead) {
-      els.mapLead.textContent = "地図をよみこみ中…";
-    }
     return;
   }
 
@@ -563,13 +556,13 @@ async function startMapSequence(pref) {
 
   currentMapTarget = target;
 
-  await sleep(300);
+  await sleep(250);
   if (!current || current.phase !== "map" || seq !== currentMapSeq) return;
 
   currentOutlinedNodes = applyOutlineToTarget(target);
   target.classList.add("quiz-outline-blink");
 
-  await sleep(650);
+  await sleep(500);
   if (!current || current.phase !== "map" || seq !== currentMapSeq) return;
 
   if (els.mapPrefName) {
