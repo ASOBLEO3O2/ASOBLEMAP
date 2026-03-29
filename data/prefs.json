@@ -363,17 +363,17 @@
       "silhouette": "images/silhouettes/6_chuugoku3_okayama.png",
       "mapHighlight": "map/highlight/33_okayama.png"
     },
-    {
-      "id": 34,
-      "code": "34",
-      "kanji": "広島県",
-      "kana": "ひろしまけん",
-      "romaji": "hiroshima",
-      "regionId": 6,
-      "regionLabel": "中国",
-      "silhouette": null,
-      "mapHighlight": "map/highlight/34_hiroshima.png"
-    },
+   {
+  "id": 34,
+  "code": "34",
+  "kanji": "広島県",
+  "kana": "ひろしまけん",
+  "romaji": "hiroshima",
+  "regionId": 6,
+  "regionLabel": "中国",
+  "silhouette": "images/silhouettes/6_chuugoku4_hiroshima.png",
+  "mapHighlight": "map/highlight/34_hiroshima.png"
+   },
     {
       "id": 35,
       "code": "35",
